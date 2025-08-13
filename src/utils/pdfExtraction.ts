@@ -1,5 +1,5 @@
 import type { TextSegment, ContentExtractionOptions } from '../types/content';
-import { cleanText, generateContentId } from './contentExtraction';
+import { cleanText } from './contentExtraction';
 
 // PDF.js detection timeout and retry configuration
 const PDF_LOAD_TIMEOUT = 15000; // 15 seconds
@@ -201,7 +201,7 @@ export function extractPDFTextFromLayers(options: ContentExtractionOptions = {})
 
       } catch (pageError) {
         console.warn(`Error processing PDF page ${pageIndex + 1}:`, pageError);
-        continue;
+        return;
       }
     });
 
@@ -422,7 +422,6 @@ export async function extractPDFText(options: ContentExtractionOptions = {}): Pr
     }
   }
 
-  let segments: TextSegment[] = [];
   const extractionMethods: Array<{
     name: string;
     method: () => Promise<TextSegment[]> | TextSegment[];
@@ -526,7 +525,7 @@ function extractPDFTextFromDOM(options: ContentExtractionOptions = {}): TextSegm
 
       let globalPosition = text.length > 0 ? text.length + 1 : 0;
 
-      pages.forEach((page, index) => {
+      pages.forEach((page) => {
         const pageText = cleanText(page.textContent || '');
 
         if (pageText.length >= minTextLength && pageText !== text) {
@@ -690,7 +689,7 @@ export async function getPDFMetadata(): Promise<{
 
     // Get additional document properties
     const pageCount = pdfDocument.numPages;
-    const fingerprint = pdfDocument.fingerprint;
+    // const fingerprint = pdfDocument.fingerprint;
 
     // Parse dates safely
     const parseDate = (dateString: string | undefined): Date | undefined => {

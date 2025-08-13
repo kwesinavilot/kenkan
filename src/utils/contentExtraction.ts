@@ -1,4 +1,4 @@
-import { TextSegment, ContentExtractionOptions } from '../types/content';
+import type { TextSegment, ContentExtractionOptions } from '../types/content';
 
 // Selectors for elements to exclude from content extraction
 const DEFAULT_EXCLUDE_SELECTORS = [

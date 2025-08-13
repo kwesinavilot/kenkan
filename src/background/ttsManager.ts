@@ -7,7 +7,6 @@ import type {
   TTSVoice, 
   TTSEvent, 
   TTSManagerOptions,
-  AIEnhancementOptions,
   TTSError,
   TTSEventCallback,
   TTSErrorCallback
@@ -367,8 +366,7 @@ export class TTSManager {
         this.playbackState.currentPosition = event.charIndex || 0;
         this.emitEvent({ 
           type: 'boundary', 
-          charIndex: event.charIndex,
-          elapsedTime: event.elapsedTime 
+          charIndex: event.charIndex || 0
         });
       };
 
@@ -408,7 +406,7 @@ export class TTSManager {
     const ttsEvent: TTSEvent = {
       type: event.type as TTSEvent['type'],
       charIndex: event.charIndex,
-      elapsedTime: event.elapsedTime
+      // elapsedTime: event.elapsedTime
     };
 
     if (event.type === 'word' || event.type === 'sentence') {
@@ -598,7 +596,7 @@ export class TTSManager {
   /**
    * Enhance text using AI SDK for better TTS
    */
-  private async enhanceTextForTTS(text: string, options: AIEnhancementOptions = {}): Promise<string> {
+  private async enhanceTextForTTS(text: string): Promise<string> {
     try {
       const { text: enhancedText } = await generateText({
         model: openai('gpt-3.5-turbo'),
@@ -611,7 +609,7 @@ export class TTSManager {
         Original text: "${text}"
         
         Return only the enhanced text without any explanations.`,
-        maxTokens: 1000,
+        // maxCompletionTokens: 1000
       });
 
       return enhancedText.trim();
@@ -886,7 +884,7 @@ export class TTSManager {
   private async checkNetworkConnectivity(): Promise<boolean> {
     try {
       // Simple connectivity check
-      const response = await fetch('https://www.google.com/favicon.ico', {
+      await fetch('https://www.google.com/favicon.ico', {
         method: 'HEAD',
         mode: 'no-cors',
         cache: 'no-cache'

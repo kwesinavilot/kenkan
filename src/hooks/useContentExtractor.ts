@@ -1,29 +1,26 @@
 import { useState, useCallback, useEffect } from 'react';
-import { 
+import type { 
   TextContent, 
   ContentExtractionResult, 
-  ContentExtractionOptions,
-  TextChunk
+  ContentExtractionOptions
 } from '../types/content';
 import { 
   findMainContentContainer,
   extractTextSegments,
-  filterContentElements,
-  generateContentId,
-  cleanText
+  generateContentId
 } from '../utils/contentExtraction';
 import { 
   isPDFJSDocument,
-  extractPDFText,
+  extractPDFText as extractPDFTextUtil,
   waitForPDFJSLoad,
   getPDFMetadata
 } from '../utils/pdfExtraction';
 import {
   processSegmentsForTTS,
   cleanTextForTTS,
-  isValidTTSText,
-  TextProcessingOptions
+  isValidTTSText
 } from '../utils/textProcessing';
+import type { TextProcessingOptions } from '../types/content';
 
 export interface UseContentExtractorReturn {
   extractHTMLText: (options?: ContentExtractionOptions) => ContentExtractionResult;
@@ -61,20 +58,20 @@ export function useContentExtractor(): UseContentExtractorReturn {
       let segments = extractTextSegments(container, options);
 
       // Filter out invalid segments for TTS
-      segments = segments.filter(segment => isValidTTSText(segment.text));
+      const filteredSegments = segments.filter(segment => isValidTTSText(segment.text));
 
-      if (segments.length === 0) {
+      if (filteredSegments.length === 0) {
         throw new Error('No readable text content found on page');
       }
 
       // Clean text for TTS processing
-      segments = segments.map(segment => ({
+      const cleanedSegments = filteredSegments.map(segment => ({
         ...segment,
         text: cleanTextForTTS(segment.text)
       }));
 
       // Calculate total word count
-      const wordCount = segments.reduce((count, segment) => {
+      const wordCount = cleanedSegments.reduce((count, segment) => {
         return count + segment.text.split(/\s+/).length;
       }, 0);
 
@@ -82,7 +79,7 @@ export function useContentExtractor(): UseContentExtractorReturn {
       const content: TextContent = {
         id: generateContentId(),
         source: 'html',
-        segments,
+        segments: cleanedSegments,
         metadata: {
           title: document.title || 'Untitled Page',
           url: window.location.href,
@@ -143,23 +140,23 @@ export function useContentExtractor(): UseContentExtractorReturn {
       await waitForPDFJSLoad();
 
       // Extract text segments from PDF
-      let segments = await extractPDFText();
+      const extractedSegments = await extractPDFTextUtil();
 
       // Filter out invalid segments for TTS
-      segments = segments.filter(segment => isValidTTSText(segment.text));
+      const filteredSegments = extractedSegments.filter(segment => isValidTTSText(segment.text));
 
-      if (segments.length === 0) {
+      if (filteredSegments.length === 0) {
         throw new Error('No readable text content found in PDF document');
       }
 
       // Clean text for TTS processing
-      segments = segments.map(segment => ({
+      const cleanedSegments = filteredSegments.map(segment => ({
         ...segment,
         text: cleanTextForTTS(segment.text)
       }));
 
       // Calculate total word count
-      const wordCount = segments.reduce((count, segment) => {
+      const wordCount = cleanedSegments.reduce((count, segment) => {
         return count + segment.text.split(/\s+/).length;
       }, 0);
 
@@ -170,7 +167,7 @@ export function useContentExtractor(): UseContentExtractorReturn {
       const content: TextContent = {
         id: generateContentId(),
         source: 'pdf',
-        segments,
+        segments: cleanedSegments,
         metadata: {
           title: pdfMetadata.title || document.title || 'PDF Document',
           url: window.location.href,

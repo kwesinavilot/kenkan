@@ -8,11 +8,78 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Next Steps
-- Background service worker for state management
-- UI components for TTS controls
-- User preferences and settings persistence
+- Complete integration of all components
+- Advanced UI controls and settings
 - Performance monitoring and analytics
 - Accessibility features and keyboard shortcuts
+
+---
+
+## [0.5.0] - 2025-08-13
+
+### Added
+#### Chrome Extension Foundation - Complete Setup
+- **React + Vite + TypeScript Project Structure**
+  - Multi-entry point build configuration for Chrome extension
+  - Content script, background script, and popup entry points
+  - TypeScript strict mode with comprehensive type checking
+  - Modern React 19 with hooks and functional components
+
+#### Tailwind CSS + shadcn/ui Integration
+- **UI Component System**
+  - Custom Button component with variants (default, secondary, outline)
+  - Card component system (Card, CardHeader, CardTitle, CardContent)
+  - Tailwind CSS v4 with PostCSS integration
+  - Responsive design utilities and consistent styling
+
+#### Working Chrome Extension
+- **Content Script Integration**
+  - Floating test button injection on all web pages
+  - Visual feedback system with hover effects and animations
+  - Message passing between content script and popup
+  - DOM manipulation with proper cleanup
+
+- **Background Service Worker**
+  - Extension lifecycle management (install, update events)
+  - Message routing between content scripts and popup
+  - Tab state tracking and management
+  - Chrome extension API integration
+
+- **Popup Interface**
+  - React-based popup with shadcn/ui components
+  - Extension status display and testing interface
+  - Modern UI with proper spacing and typography
+  - Interactive test functionality
+
+#### Development Infrastructure
+- **Build System**
+  - Vite configuration optimized for Chrome extension development
+  - Multiple entry points (popup, content, background)
+  - Asset handling and file naming for extension compatibility
+  - Development and production build configurations
+
+- **Dependencies Management**
+  - All required packages installed and configured
+  - Chrome extension types for API support
+  - AI SDK and Lucide React for future features
+  - PostCSS and Tailwind CSS properly configured
+
+### Files Added
+- `src/components/ui/button.tsx` - Reusable button component
+- `src/components/ui/card.tsx` - Card component system
+- `src/components/ui/index.ts` - Component exports
+- `public/icon.svg` - Extension icon placeholder
+
+### Files Enhanced
+- `src/content/index.ts` - Added floating button functionality
+- `src/background/index.ts` - Added message handling and lifecycle management
+- `src/popup/index.tsx` - Enhanced with shadcn/ui components and testing interface
+- `vite.config.ts` - Multi-entry build configuration
+- `postcss.config.js` - Tailwind CSS v4 integration
+
+### Requirements Satisfied
+- ✅ **Requirement 6.1** - React + Vite Chrome extension project setup
+- ✅ **All Task 1 Requirements** - Complete foundation ready for TTS implementation
 
 ---
 

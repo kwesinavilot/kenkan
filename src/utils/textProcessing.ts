@@ -1,4 +1,4 @@
-import { TextSegment, TextChunk, TextProcessingOptions } from '../types/content';
+import type { TextSegment, TextChunk, TextProcessingOptions } from '../types/content';
 
 /**
  * Splits text into manageable chunks for TTS processing
