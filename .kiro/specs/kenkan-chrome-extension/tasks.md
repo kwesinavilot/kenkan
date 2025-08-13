@@ -14,30 +14,52 @@
   - Set up project structure for src/content, src/background, src/popup
   - _Requirements: 6.1_
 
-- [ ] 2. Implement core text extraction functionality
-- [ ] 2.1 Create React hook for HTML content extraction
+- [x] 2. Implement core text extraction functionality
+
+
+
+
+
+
+- [x] 2.1 Create React hook for HTML content extraction
+
+
+
   - Write useContentExtractor custom hook with TypeScript interfaces
   - Implement text filtering to exclude navigation, ads, and non-content elements
   - Create utility functions for DOM traversal and text cleaning
   - Write unit tests using Jest and React Testing Library
   - _Requirements: 1.1, 1.4_
 
-- [ ] 2.2 Implement PDF text extraction using PDF.js detection
+
+
+- [x] 2.2 Implement PDF text extraction using PDF.js detection
+
+
   - Write PDF detection logic to identify PDF.js rendered documents
   - Implement text extraction from PDF.js text layer elements
   - Create error handling for when PDF.js is not available
   - Write unit tests for PDF text extraction scenarios
+
+
   - _Requirements: 1.2, 1.5_
 
-- [ ] 2.3 Create text segmentation and processing utilities
+- [x] 2.3 Create text segmentation and processing utilities
+
   - Implement TextSegment model and text chunking functionality
   - Write text cleaning and normalization functions
   - Create methods to handle special characters and formatting for TTS
   - Write unit tests for text processing functions
   - _Requirements: 2.4_
 
-- [ ] 3. Build TTS management system
-- [ ] 3.1 Implement TTSManager with Chrome TTS and AI SDK integration
+- [x] 3. Build TTS management system
+
+
+
+
+- [x] 3.1 Implement TTSManager with Chrome TTS and AI SDK integration
+
+
   - Write TTSManager TypeScript class with play, pause, stop functionality
   - Integrate Vercel AI SDK for potential voice enhancement features
   - Implement voice selection and enumeration using chrome.tts.getVoices
@@ -45,7 +67,9 @@
   - Write unit tests for TTS manager state transitions
   - _Requirements: 2.1, 2.2, 2.5_
 
-- [ ] 3.2 Add TTS error handling and fallback mechanisms
+- [x] 3.2 Add TTS error handling and fallback mechanisms
+
+
   - Implement error handling for TTS API failures and voice unavailability
   - Create fallback voice selection when preferred voice is not available
   - Add retry logic for temporary TTS failures
