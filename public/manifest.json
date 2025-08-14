@@ -1,12 +1,13 @@
 {
   "manifest_version": 3,
   "name": "Kenkan Chrome Extension",
-  "version": "0.5.0",
+  "version": "1.0.1",
   "description": "AI-powered Chrome extension for enhanced web browsing",
   "permissions": [
     "activeTab",
     "storage",
-    "scripting"
+    "scripting",
+    "tts"
   ],
   "host_permissions": [
     "https://*/*",

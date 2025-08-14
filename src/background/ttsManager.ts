@@ -1,11 +1,11 @@
 import { openai } from '@ai-sdk/openai';
 import { generateText } from 'ai';
 import { TTSErrorHandler } from './ttsErrorHandler';
-import type { 
-  TTSOptions, 
-  PlaybackState, 
-  TTSVoice, 
-  TTSEvent, 
+import type {
+  TTSOptions,
+  PlaybackState,
+  TTSVoice,
+  TTSEvent,
   TTSManagerOptions,
   TTSError,
   TTSEventCallback,
@@ -54,19 +54,30 @@ export class TTSManager {
    */
   private async initializeVoices(): Promise<void> {
     try {
+      console.log('Initializing TTS voices...');
+
+      // Check if we're in a valid Chrome extension context
+      if (typeof chrome === 'undefined') {
+        console.error('Chrome APIs not available - not running in extension context');
+        this.initializeWebSpeechVoices();
+        return;
+      }
+
       // First validate the TTS environment
       const isEnvironmentValid = await this.validateTTSEnvironment();
+      console.log('TTS environment valid:', isEnvironmentValid);
+
       if (!isEnvironmentValid) {
-        await this.handleError({
-          code: 'TTS_FAILED',
-          message: 'No TTS engines available',
-          retryable: false
-        });
+        console.warn('Chrome TTS not available, falling back to Web Speech API');
+        this.initializeWebSpeechVoices();
         return;
       }
 
       if (typeof chrome !== 'undefined' && chrome.tts) {
+        console.log('Using Chrome TTS API');
         chrome.tts.getVoices((voices) => {
+          console.log('Chrome TTS voices received:', voices?.length || 0);
+
           if (!voices || voices.length === 0) {
             console.warn('Chrome TTS returned no voices, falling back to Web Speech API');
             this.initializeWebSpeechVoices();
@@ -83,6 +94,7 @@ export class TTSManager {
 
           // Filter for reliable voices
           this.availableVoices = TTSErrorHandler.filterReliableVoices(mappedVoices);
+          console.log('Available voices after filtering:', this.availableVoices.length);
 
           // Set default voice if not specified
           this.setDefaultVoice();
@@ -90,6 +102,7 @@ export class TTSManager {
         });
       } else {
         // Fallback to Web Speech API if Chrome TTS is not available
+        console.log('Chrome TTS not available, using Web Speech API');
         this.initializeWebSpeechVoices();
       }
     } catch (error) {
@@ -112,8 +125,8 @@ export class TTSManager {
 
     // Preference order: default voice -> English voice -> any voice
     let defaultVoice = this.availableVoices.find(v => v.default) ||
-                      this.availableVoices.find(v => v.lang.startsWith('en')) ||
-                      this.availableVoices[0];
+      this.availableVoices.find(v => v.lang.startsWith('en')) ||
+      this.availableVoices[0];
 
     if (defaultVoice) {
       this.playbackState.voice = defaultVoice.voiceURI;
@@ -125,10 +138,13 @@ export class TTSManager {
    */
   private initializeWebSpeechVoices(): void {
     try {
+      console.log('Initializing Web Speech API voices...');
+
       if (typeof speechSynthesis === 'undefined') {
+        console.error('Web Speech API not available in this environment');
         this.handleError({
           code: 'TTS_FAILED',
-          message: 'Web Speech API not available',
+          message: 'No TTS engines available - neither Chrome TTS nor Web Speech API found',
           retryable: false
         });
         return;
@@ -136,8 +152,15 @@ export class TTSManager {
 
       const loadVoices = () => {
         const voices = speechSynthesis.getVoices();
+        console.log('Web Speech API voices found:', voices.length);
+
         if (voices.length === 0) {
           console.warn('No Web Speech API voices available');
+          this.handleError({
+            code: 'TTS_FAILED',
+            message: 'No voices available in Web Speech API',
+            retryable: true
+          });
           return;
         }
 
@@ -151,6 +174,17 @@ export class TTSManager {
 
         // Filter for reliable voices
         this.availableVoices = TTSErrorHandler.filterReliableVoices(mappedVoices);
+        console.log('Web Speech voices after filtering:', this.availableVoices.length);
+
+        if (this.availableVoices.length === 0) {
+          console.error('No reliable voices found after filtering');
+          this.handleError({
+            code: 'TTS_FAILED',
+            message: 'No reliable TTS voices available',
+            retryable: false
+          });
+          return;
+        }
 
         this.setDefaultVoice();
         this.emitEvent({ type: 'start' });
@@ -310,11 +344,11 @@ export class TTSManager {
       }
 
       this.currentUtterance = new SpeechSynthesisUtterance(text);
-      
+
       // Find and set voice with fallback
       const voices = speechSynthesis.getVoices();
       let voice = voices.find(v => v.voiceURI === this.playbackState.voice);
-      
+
       if (!voice) {
         console.warn(`Voice ${this.playbackState.voice} not found, using fallback`);
         voice = voices.find(v => v.lang.startsWith('en')) || voices[0];
@@ -355,7 +389,7 @@ export class TTSManager {
       this.currentUtterance.onerror = (event) => {
         console.error('Web Speech API error:', event.error);
         this.emitEvent({ type: 'error', error: event.error });
-        
+
         if (!hasEnded) {
           hasEnded = true;
           reject(new Error(event.error));
@@ -364,8 +398,8 @@ export class TTSManager {
 
       this.currentUtterance.onboundary = (event) => {
         this.playbackState.currentPosition = event.charIndex || 0;
-        this.emitEvent({ 
-          type: 'boundary', 
+        this.emitEvent({
+          type: 'boundary',
           charIndex: event.charIndex || 0
         });
       };
@@ -539,11 +573,11 @@ export class TTSManager {
     const validation = TTSErrorHandler.validateVoiceConfiguration(
       dummyVoice, rate, this.playbackState.pitch, this.playbackState.volume
     );
-    
+
     if (!validation.isValid) {
       throw new Error(validation.issues[0]);
     }
-    
+
     this.playbackState.speed = rate;
   }
 
@@ -555,11 +589,11 @@ export class TTSManager {
     const validation = TTSErrorHandler.validateVoiceConfiguration(
       dummyVoice, this.playbackState.speed, this.playbackState.pitch, volume
     );
-    
+
     if (!validation.isValid) {
       throw new Error(validation.issues.find(issue => issue.includes('volume')) || validation.issues[0]);
     }
-    
+
     this.playbackState.volume = volume;
   }
 
@@ -571,11 +605,11 @@ export class TTSManager {
     const validation = TTSErrorHandler.validateVoiceConfiguration(
       dummyVoice, this.playbackState.speed, pitch, this.playbackState.volume
     );
-    
+
     if (!validation.isValid) {
       throw new Error(validation.issues.find(issue => issue.includes('pitch')) || validation.issues[0]);
     }
-    
+
     this.playbackState.pitch = pitch;
   }
 
@@ -671,7 +705,7 @@ export class TTSManager {
   private async handleError(errorInput: TTSError | any): Promise<void> {
     // Categorize the error using the error handler
     const error = errorInput.code ? errorInput : TTSErrorHandler.categorizeError(errorInput);
-    
+
     console.error('TTS Error:', TTSErrorHandler.createErrorReport(error, {
       voiceURI: this.playbackState.voice,
       textLength: this.textSegments[this.playbackState.currentSegment]?.text?.length,
@@ -697,10 +731,10 @@ export class TTSManager {
         // Temporarily disable Chrome TTS for this session
         (global as any).chrome = undefined;
         this.initializeWebSpeechVoices();
-        
+
         // Wait for voices to load
         await new Promise(resolve => setTimeout(resolve, 500));
-        
+
         if (this.availableVoices.length > 0) {
           await this.playCurrentSegment();
           return;
@@ -712,7 +746,7 @@ export class TTSManager {
     if (error.retryable && this.retryCount < (this.options.retryAttempts || 3)) {
       this.retryCount++;
       console.log(`Retrying TTS operation (attempt ${this.retryCount}/${this.options.retryAttempts})`);
-      
+
       const delay = TTSErrorHandler.calculateRetryDelay(this.retryCount, this.options.retryDelay);
       setTimeout(async () => {
         await this.playCurrentSegment();
@@ -721,12 +755,12 @@ export class TTSManager {
     }
 
     this.retryCount = 0;
-    
+
     // Final fallback: try to continue with next segment
     if (this.playbackState.currentSegment < this.textSegments.length - 1) {
       console.log('Skipping problematic segment and continuing');
       this.playbackState.currentSegment++;
-      
+
       // Add a small delay before continuing
       setTimeout(async () => {
         await this.playCurrentSegment();
@@ -759,27 +793,27 @@ export class TTSManager {
    * Find a fallback voice when the preferred voice is unavailable
    */
   private findFallbackVoice(): TTSVoice | null {
-    const currentLang = this.playbackState.voice ? 
-      this.availableVoices.find(v => v.voiceURI === this.playbackState.voice)?.lang : 
+    const currentLang = this.playbackState.voice ?
+      this.availableVoices.find(v => v.voiceURI === this.playbackState.voice)?.lang :
       'en-US';
 
     // Try to find a voice with the same language
-    let fallback = this.availableVoices.find(v => 
-      v.voiceURI !== this.playbackState.voice && 
+    let fallback = this.availableVoices.find(v =>
+      v.voiceURI !== this.playbackState.voice &&
       v.lang === currentLang
     );
 
     // If no same-language voice, try English variants
     if (!fallback) {
-      fallback = this.availableVoices.find(v => 
-        v.voiceURI !== this.playbackState.voice && 
+      fallback = this.availableVoices.find(v =>
+        v.voiceURI !== this.playbackState.voice &&
         v.lang.startsWith('en')
       );
     }
 
     // If still no fallback, use any available voice
     if (!fallback) {
-      fallback = this.availableVoices.find(v => 
+      fallback = this.availableVoices.find(v =>
         v.voiceURI !== this.playbackState.voice
       );
     }
@@ -823,7 +857,7 @@ export class TTSManager {
               setTimeout(checkVoices, 100);
             }
           };
-          
+
           speechSynthesis.onvoiceschanged = checkVoices;
           setTimeout(() => resolve(false), 5000); // Timeout after 5 seconds
         });
@@ -856,7 +890,7 @@ export class TTSManager {
           };
 
           chrome.tts.speak('', testOptions); // Empty string for testing
-          
+
           // Timeout if no response
           setTimeout(() => {
             chrome.tts.stop();
@@ -908,7 +942,7 @@ export class TTSManager {
   }> {
     const errors: string[] = [];
     const availableEngines: string[] = [];
-    
+
     // Check Chrome TTS
     if (typeof chrome !== 'undefined' && chrome.tts) {
       availableEngines.push('Chrome TTS');
@@ -949,21 +983,21 @@ export class TTSManager {
   async recoverFromError(): Promise<boolean> {
     try {
       console.log('Attempting TTS recovery...');
-      
+
       // Reset state
       this.stopReading();
       this.retryCount = 0;
       this.availableVoices = [];
-      
+
       // Reinitialize voices
       await this.initializeVoices();
-      
+
       // Wait a bit for initialization
       await new Promise(resolve => setTimeout(resolve, 1000));
-      
+
       // Check if recovery was successful
       const health = await this.getHealthStatus();
-      
+
       if (health.isHealthy) {
         console.log('TTS recovery successful');
         this.emitEvent({ type: 'start' }); // Signal recovery

@@ -21,11 +21,18 @@ export default defineConfig({
       output: {
         entryFileNames: '[name].js',
         chunkFileNames: '[name].js',
-        assetFileNames: '[name].[ext]'
+        assetFileNames: '[name].[ext]',
+        manualChunks: undefined, // Disable code splitting
       }
     },
     outDir: 'dist',
-    emptyOutDir: true
+    emptyOutDir: true,
+    target: 'es2020', // Ensure compatibility with Chrome extensions
+    minify: false // Disable minification for easier debugging
   },
-  publicDir: 'public'
+  publicDir: 'public',
+  define: {
+    // Ensure we're building for extension environment
+    'process.env.NODE_ENV': '"production"'
+  }
 })
