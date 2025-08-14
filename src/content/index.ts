@@ -22,6 +22,12 @@ class KenkanContentScript {
 
   private async initialize(): Promise<void> {
     try {
+      // Check if extension context is valid
+      if (typeof chrome === 'undefined' || !chrome.runtime) {
+        console.warn('Extension context not available');
+        return;
+      }
+
       // Wait for page to be ready
       if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', () => this.setup());
@@ -48,16 +54,16 @@ class KenkanContentScript {
   private detectDarkMode(): void {
     // Check system preference
     const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-    
+
     // Check if page has dark background
     const bodyBg = window.getComputedStyle(document.body).backgroundColor;
     const htmlBg = window.getComputedStyle(document.documentElement).backgroundColor;
-    
+
     // Simple heuristic: if background is dark, use dark mode
     const isDarkBackground = this.isColorDark(bodyBg) || this.isColorDark(htmlBg);
-    
+
     this.isDarkMode = prefersDark || isDarkBackground;
-    
+
     // Listen for system theme changes
     window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
       this.isDarkMode = e.matches;
@@ -69,7 +75,7 @@ class KenkanContentScript {
     // Convert RGB to luminance
     const rgb = color.match(/\d+/g);
     if (!rgb || rgb.length < 3) return false;
-    
+
     const [r, g, b] = rgb.map(Number);
     const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
     return luminance < 0.5;
@@ -78,7 +84,7 @@ class KenkanContentScript {
   private updateTheme(): void {
     const container = document.getElementById('kenkan-floating-container');
     const controls = document.getElementById('kenkan-controls');
-    
+
     if (container && controls) {
       this.applyTheme(controls);
     }
@@ -87,9 +93,9 @@ class KenkanContentScript {
   private setupKeyboardShortcuts(): void {
     document.addEventListener('keydown', (event) => {
       // Only handle shortcuts when not typing in input fields
-      if (event.target instanceof HTMLInputElement || 
-          event.target instanceof HTMLTextAreaElement || 
-          (event.target as HTMLElement).contentEditable === 'true') {
+      if (event.target instanceof HTMLInputElement ||
+        event.target instanceof HTMLTextAreaElement ||
+        (event.target as HTMLElement).contentEditable === 'true') {
         return;
       }
 
@@ -133,7 +139,7 @@ class KenkanContentScript {
     try {
       this.currentSpeed = Math.max(0.5, Math.min(3.0, this.currentSpeed + delta));
       await this.sendMessage({ action: 'setSpeed', data: { speed: this.currentSpeed } });
-      
+
       // Update speed button text
       const speedBtn = document.querySelector('#kenkan-controls button:nth-child(3)') as HTMLButtonElement;
       if (speedBtn) {
@@ -147,7 +153,7 @@ class KenkanContentScript {
   private async setup(): Promise<void> {
     // Load saved button position
     await this.loadButtonPosition();
-    
+
     this.createFloatingButton();
 
     // Debounce content extraction to avoid excessive processing
@@ -204,7 +210,7 @@ class KenkanContentScript {
       margin-bottom: 8px;
       padding: 4px 0;
     `;
-    
+
     const progressLabel = document.createElement('div');
     progressLabel.id = 'kenkan-progress-label';
     progressLabel.style.cssText = `
@@ -214,7 +220,7 @@ class KenkanContentScript {
       text-align: center;
     `;
     progressLabel.textContent = 'Ready to read';
-    
+
     const progressBar = document.createElement('div');
     progressBar.style.cssText = `
       width: 100%;
@@ -223,7 +229,7 @@ class KenkanContentScript {
       border-radius: 2px;
       overflow: hidden;
     `;
-    
+
     const progressFill = document.createElement('div');
     progressFill.id = 'kenkan-progress-fill';
     progressFill.style.cssText = `
@@ -233,7 +239,7 @@ class KenkanContentScript {
       border-radius: 2px;
       transition: width 0.3s ease;
     `;
-    
+
     progressBar.appendChild(progressFill);
     progressContainer.appendChild(progressLabel);
     progressContainer.appendChild(progressBar);
@@ -256,10 +262,10 @@ class KenkanContentScript {
     container.appendChild(button);
 
     // Hover events for smooth animation
-    let hoverTimeout: NodeJS.Timeout;
+    let hoverTimeout: number;
 
     const showControls = () => {
-      clearTimeout(hoverTimeout);
+      window.clearTimeout(hoverTimeout);
       controls.style.opacity = '1';
       controls.style.transform = 'translateY(0) scale(1)';
       controls.style.pointerEvents = 'auto';
@@ -269,7 +275,7 @@ class KenkanContentScript {
     };
 
     const hideControls = () => {
-      hoverTimeout = setTimeout(() => {
+      hoverTimeout = window.setTimeout(() => {
         controls.style.opacity = '0';
         controls.style.transform = 'translateY(20px) scale(0.8)';
         controls.style.pointerEvents = 'none';
@@ -283,6 +289,7 @@ class KenkanContentScript {
     container.addEventListener('mouseleave', hideControls);
 
     button.addEventListener('click', (e) => {
+      console.log("The event is: " + e)
       if (!this.isDragging) {
         this.toggleTTS();
       }
@@ -300,13 +307,13 @@ class KenkanContentScript {
 
     const onMouseDown = (e: MouseEvent) => {
       if (e.target !== button) return;
-      
+
       this.isDragging = false;
       startX = e.clientX;
       startY = e.clientY;
       startBottom = this.buttonPosition.bottom;
       startRight = this.buttonPosition.right;
-      
+
       document.addEventListener('mousemove', onMouseMove);
       document.addEventListener('mouseup', onMouseUp);
       e.preventDefault();
@@ -315,17 +322,17 @@ class KenkanContentScript {
     const onMouseMove = (e: MouseEvent) => {
       const deltaX = startX - e.clientX;
       const deltaY = e.clientY - startY;
-      
+
       // Mark as dragging if moved more than 5px
       if (Math.abs(deltaX) > 5 || Math.abs(deltaY) > 5) {
         this.isDragging = true;
       }
-      
+
       const newRight = Math.max(10, Math.min(window.innerWidth - 70, startRight + deltaX));
       const newBottom = Math.max(10, Math.min(window.innerHeight - 70, startBottom + deltaY));
-      
+
       this.buttonPosition = { bottom: newBottom, right: newRight };
-      
+
       container.style.bottom = `${newBottom}px`;
       container.style.right = `${newRight}px`;
     };
@@ -333,10 +340,10 @@ class KenkanContentScript {
     const onMouseUp = () => {
       document.removeEventListener('mousemove', onMouseMove);
       document.removeEventListener('mouseup', onMouseUp);
-      
+
       // Save position to storage
       this.saveButtonPosition();
-      
+
       // Reset dragging flag after a short delay
       setTimeout(() => {
         this.isDragging = false;
@@ -380,7 +387,7 @@ Ctrl/Cmd + ↓: Speed Down
 
 💡 Tip: You can drag the floating button to reposition it!
     `;
-    
+
     alert(helpText.trim());
   }
 
@@ -546,7 +553,11 @@ Ctrl/Cmd + ↓: Speed Down
       }
     } catch (error) {
       console.error('Error toggling TTS:', error);
-      alert('Error communicating with extension. Please try refreshing the page.');
+      if (error instanceof Error && error.message && error.message.includes('Extension context invalidated')) {
+        alert('Extension was reloaded. Please refresh this page to continue using Kenkan.');
+      } else {
+        alert('Error communicating with extension. Please try refreshing the page.');
+      }
     }
   }
 
@@ -718,7 +729,7 @@ Ctrl/Cmd + ↓: Speed Down
   private updateProgressDisplay(data: { currentSegment: number; totalSegments: number; progress: number }): void {
     const progressFill = document.getElementById('kenkan-progress-fill');
     const progressLabel = document.getElementById('kenkan-progress-label');
-    
+
     if (progressFill && progressLabel) {
       progressFill.style.width = `${data.progress}%`;
       progressLabel.textContent = `Reading ${data.currentSegment + 1} of ${data.totalSegments} (${Math.round(data.progress)}%)`;
@@ -787,7 +798,7 @@ Ctrl/Cmd + ↓: Speed Down
       btn.style.background = theme.buttonBg;
       btn.style.borderColor = theme.buttonBorder;
       btn.style.color = theme.buttonColor;
-      
+
       // Store theme colors for hover effects
       btn.dataset.hoverBg = theme.buttonHoverBg;
       btn.dataset.normalBg = theme.buttonBg;
@@ -843,13 +854,24 @@ Ctrl/Cmd + ↓: Speed Down
 
   private async sendMessage(message: any): Promise<any> {
     return new Promise((resolve, reject) => {
-      chrome.runtime.sendMessage(message, (response) => {
-        if (chrome.runtime.lastError) {
-          reject(new Error(chrome.runtime.lastError.message));
-        } else {
-          resolve(response || { success: true });
-        }
-      });
+      try {
+        chrome.runtime.sendMessage(message, (response) => {
+          if (chrome.runtime.lastError) {
+            const error = chrome.runtime.lastError.message;
+            if (error && error.includes('Extension context invalidated')) {
+              console.warn('Extension was reloaded. Please refresh the page.');
+              resolve({ success: false, error: 'Extension reloaded - please refresh page' });
+            } else {
+              reject(new Error(error || 'Unknown runtime error'));
+            }
+          } else {
+            resolve(response || { success: true });
+          }
+        });
+      } catch (error) {
+        console.error('Error sending message:', error);
+        reject(error);
+      }
     });
   }
 

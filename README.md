@@ -2,7 +2,7 @@
 
 > Transform any web content into natural, AI-enhanced speech with advanced text-to-speech capabilities.
 
-[![Version](https://img.shields.io/badge/version-1.1.0-blue.svg)](https://github.com/your-repo/kenkan)
+[![Version](https://img.shields.io/badge/version-1.3.0-blue.svg)](https://github.com/your-repo/kenkan)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.8-blue.svg)](https://www.typescriptlang.org/)
 [![React](https://img.shields.io/badge/React-19.1-blue.svg)](https://reactjs.org/)
@@ -26,13 +26,16 @@ Kenkan is a powerful Chrome extension that converts web content into high-qualit
 - **Intelligent Filtering** - Removes navigation, ads, and non-content elements automatically
 - **Content Structure Preservation** - Maintains headings, paragraphs, and list formatting
 
-### 🎤 **Advanced Text-to-Speech**
-- **Chrome TTS Integration** - Native Chrome text-to-speech with full voice control
-- **Web Speech API Fallback** - Cross-platform compatibility when Chrome TTS unavailable
-- **Voice Selection** - Choose from all available system voices with smart defaults
+### 🎤 **Advanced Text-to-Speech Engine**
+- **Custom AI Voices** - 4 unique AI-powered voices with distinct personalities and specialties
+- **Chrome TTS Engine Provider** - Functions as both TTS consumer and provider for other extensions
+- **Intelligent Voice Matching** - Automatically selects system voices that match custom voice characteristics
+- **AI-Enhanced Speech Synthesis** - Uses OpenAI GPT to adapt text for each voice's unique personality
+- **Multi-Engine Fallback** - Chrome TTS, Web Speech API, and custom engine with seamless switching
+- **Voice Personality Profiles** - Sandra (friendly), Kwesi (authoritative), Kwame (storyteller), Akua (French eloquent)
+- **Dynamic Voice Registration** - Real-time voice updates and availability management
 - **Complete Playback Controls** - Play, pause, stop, resume with position memory
 - **Real-time Speed Adjustment** - Change speed during playback without interruption
-- **AI Text Enhancement** - Uses OpenAI GPT to improve text naturalness for better speech
 
 ### 🛡️ **Robust Error Handling**
 - **Multi-Level Fallbacks** - Automatic fallback between TTS engines and voices
@@ -51,6 +54,36 @@ Kenkan is a powerful Chrome extension that converts web content into high-qualit
 - **Performance Tracking** - Monitors extraction and speech performance
 - **Diagnostic Tools** - Comprehensive error reporting and debugging
 - **Memory Optimization** - Efficient processing for large documents
+
+## 🎭 Custom AI Voices
+
+### **Sandra** - The Friendly Companion
+- **Profile**: Warm, friendly African female voice (late 20s)
+- **Tone**: Light, conversational with gentle rhythm
+- **Specialties**: Casual updates, relatable content, friendly conversations
+- **Accent**: West African lilt with cultural warmth
+- **Best For**: Social media, blogs, casual articles
+
+### **Kwesi** - The News Anchor
+- **Profile**: Deep, confident male voice (early 40s)
+- **Tone**: Smooth, commanding with refined articulation
+- **Specialties**: Formal news, serious commentary, authoritative content
+- **Accent**: Professional African broadcast quality
+- **Best For**: News articles, formal documents, business content
+
+### **Kwame** - The Storyteller
+- **Profile**: Rich, expressive voice (mid-40s)
+- **Tone**: Warm, engaging with dynamic modulation
+- **Specialties**: Storytelling, documentaries, longform content
+- **Accent**: Smooth West African cadence
+- **Best For**: Narratives, podcasts, educational content
+
+### **Akua** - The French Eloquent
+- **Profile**: Warm, eloquent West African French female (early 30s)
+- **Tone**: Graceful, articulate with lyrical cadence
+- **Specialties**: French content, educational material, heartfelt messages
+- **Accent**: Parisian French with West African authenticity
+- **Best For**: French articles, educational content, cultural material
 
 ## 🎯 Use Cases
 
@@ -83,23 +116,28 @@ Kenkan is a powerful Chrome extension that converts web content into high-qualit
 
 ## 📈 Development Status
 
-### ✅ **Completed Features (v1.1.0)**
+### ✅ **Completed Features (v1.3.0)**
 - **Complete UI/UX System** - Animated floating controls with hover interactions
 - **Full Playback Control** - Play, pause, stop, resume, and speed cycling
 - **Smart Popup Interface** - Current reading tab display with navigation
 - **Core Content Extraction** - HTML and PDF text processing
-- **Advanced TTS Engine** - Chrome TTS with Web Speech API fallback
+- **Custom TTS Engine** - Full TTS engine implementation with 4 AI-powered voices
+- **Chrome TTS Engine Provider** - Registered as TTS provider for other extensions
+- **AI Voice Personalities** - Sandra, Kwesi, Kwame, and Akua with unique characteristics
+- **Multi-Engine Architecture** - Chrome TTS, Web Speech API, and custom engine integration
 - **Cross-tab State Management** - Background service worker coordination
 - **Persistent Storage** - User preferences and reading progress
 - **Real-time Text Highlighting** - Synchronized highlighting during playback
 - **Comprehensive Error Handling** - Multi-level fallbacks and recovery
-- **AI Text Enhancement** - OpenAI integration for natural speech
+- **AI Text Enhancement** - OpenAI integration for voice-specific text adaptation
 
 ### 🔮 **Planned Features**
-- **Voice Customization** - Custom voice selection and training
+- **Voice Training** - Custom voice model training and fine-tuning
+- **Audio Streaming** - Real-time audio streaming from AI synthesis services
+- **Language Management** - Dynamic language installation and uninstallation
 - **Reading Analytics** - Progress tracking and reading statistics
 - **OCR Support** - Image-based content extraction
-- **Multi-language Support** - International language detection
+- **Multi-language Support** - International language detection and synthesis
 - **Accessibility Enhancements** - Screen reader integration
 - **Performance Analytics** - Usage metrics and optimization
 

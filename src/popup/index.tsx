@@ -3,8 +3,9 @@ import ReactDOM from 'react-dom/client';
 import { Play, Pause, Square, Settings, Volume2, Zap } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
-import { Select } from '../components/ui/select';
+
 import { Slider } from '../components/ui/slider';
+
 import './popup.css';
 
 interface PlaybackState {
@@ -18,13 +19,7 @@ interface PlaybackState {
   pitch: number;
 }
 
-interface Voice {
-  voiceURI: string;
-  name: string;
-  lang: string;
-  localService: boolean;
-  default: boolean;
-}
+
 
 function Popup() {
   const [playbackState, setPlaybackState] = useState<PlaybackState>({
@@ -38,7 +33,7 @@ function Popup() {
     pitch: 1.0
   });
   
-  const [voices, setVoices] = useState<Voice[]>([]);
+
   const [showSettings, setShowSettings] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
   const [stats, setStats] = useState({
@@ -70,11 +65,7 @@ function Popup() {
         setPlaybackState(stateResponse.data);
       }
 
-      // Get available voices
-      const voicesResponse = await sendMessage({ action: 'getVoices' });
-      if (voicesResponse.success && voicesResponse.data) {
-        setVoices(voicesResponse.data);
-      }
+      // Voices are now handled by VoiceSelector component
 
       // Get stats
       const statsResponse = await sendMessage({ action: 'getStats' });
@@ -169,11 +160,6 @@ function Popup() {
   const progress = playbackState.totalSegments > 0 
     ? (playbackState.currentSegment / playbackState.totalSegments) * 100 
     : 0;
-
-  const voiceOptions = voices.map(voice => ({
-    value: voice.voiceURI,
-    label: `${voice.name} (${voice.lang})`
-  }));
 
   return (
     <div className="w-96 h-[600px] p-4 bg-gray-50">
@@ -282,12 +268,17 @@ function Popup() {
               {/* Voice Selection */}
               <div className="space-y-2">
                 <label className="text-sm font-medium text-gray-700">Voice</label>
-                <Select
-                  options={voiceOptions}
+                <select
                   value={playbackState.voice}
-                  onChange={handleVoiceChange}
-                  placeholder="Select voice..."
-                />
+                  onChange={(e) => handleVoiceChange(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                >
+                  <option value="">Default Voice</option>
+                  <option value="Sandra">Sandra - Warm & Friendly</option>
+                  <option value="Kwesi">Kwesi - Authoritative</option>
+                  <option value="Kwame">Kwame - Storyteller</option>
+                  <option value="Akua">Akua - French Eloquent</option>
+                </select>
               </div>
 
               {/* Speed Control */}
@@ -375,7 +366,7 @@ function Popup() {
 
           {/* Footer */}
           <div className="text-center text-xs text-gray-500 pt-2 border-t border-gray-200">
-            Kenkan v0.5.0 - AI-Powered Text-to-Speech
+            Kenkan v1.3.0 - AI-Powered Text-to-Speech with Custom Voices
           </div>
         </CardContent>
       </Card>

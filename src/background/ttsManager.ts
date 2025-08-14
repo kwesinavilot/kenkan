@@ -729,7 +729,7 @@ export class TTSManager {
       if (typeof chrome !== 'undefined' && chrome.tts) {
         console.log('Chrome TTS failed, falling back to Web Speech API');
         // Temporarily disable Chrome TTS for this session
-        (global as any).chrome = undefined;
+        (globalThis as any).chrome = undefined;
         this.initializeWebSpeechVoices();
 
         // Wait for voices to load

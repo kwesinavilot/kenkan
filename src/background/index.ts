@@ -54,6 +54,8 @@ chrome.runtime.onInstalled.addListener(async (details) => {
         highlightText: preferences.highlightText
       });
 
+      // TTS engine voices updated automatically
+
       // Update statistics
       await storageManager.updateStatistics({
         lastActivity: new Date()

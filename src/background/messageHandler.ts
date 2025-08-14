@@ -214,6 +214,13 @@ export class MessageHandler {
           });
           break;
 
+        case 'getTTSEngineStatus':
+          sendResponse({
+            success: true,
+            data: { status: 'Using Chrome TTS API' }
+          });
+          break;
+
         case 'test':
           console.log('Test message received in background script');
           sendResponse({ 
