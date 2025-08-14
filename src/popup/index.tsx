@@ -32,7 +32,7 @@ function Popup() {
     volume: 1.0,
     pitch: 1.0
   });
-  
+
 
   const [showSettings, setShowSettings] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
@@ -42,7 +42,7 @@ function Popup() {
     tabsWithContent: 0,
     playingTabs: 0
   });
-  
+
   const [currentTab, setCurrentTab] = useState<{
     title: string;
     url: string;
@@ -51,7 +51,7 @@ function Popup() {
 
   useEffect(() => {
     loadInitialData();
-    
+
     // Refresh data every 5 seconds (reduced frequency)
     const interval = setInterval(loadInitialData, 5000);
     return () => clearInterval(interval);
@@ -120,9 +120,9 @@ function Popup() {
   const handleStop = async () => {
     const response = await sendMessage({ action: 'stopReading' });
     if (response.success) {
-      setPlaybackState(prev => ({ 
-        ...prev, 
-        isPlaying: false, 
+      setPlaybackState(prev => ({
+        ...prev,
+        isPlaying: false,
         isPaused: false,
         currentSegment: 0
       }));
@@ -157,220 +157,217 @@ function Popup() {
     }
   };
 
-  const progress = playbackState.totalSegments > 0 
-    ? (playbackState.currentSegment / playbackState.totalSegments) * 100 
+  const progress = playbackState.totalSegments > 0
+    ? (playbackState.currentSegment / playbackState.totalSegments) * 100
     : 0;
 
   return (
-    <div className="w-96 h-[600px] p-4 bg-gray-50">
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center justify-between">
-            <div className="flex items-center">
-              <span className="text-2xl mr-2">🎧</span>
-              Kenkan TTS
-            </div>
-            <div className={`w-3 h-3 rounded-full ${isConnected ? 'bg-green-500' : 'bg-red-500'}`} />
-          </CardTitle>
-        </CardHeader>
-        
-        <CardContent className="space-y-4">
-          {/* Current Reading Tab */}
-          {(playbackState.isPlaying || playbackState.isPaused) && (
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-medium text-blue-900">Currently Reading</span>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-                    if (tabs[0]?.id) {
-                      chrome.tabs.update(tabs[0].id, { active: true });
-                      window.close();
-                    }
-                  })}
-                  className="text-xs px-2 py-1 h-6"
-                >
-                  Go to Tab
-                </Button>
-              </div>
-              <div className="text-xs text-blue-700 truncate" title={currentTab?.url}>
-                📄 {currentTab?.title || 'Current Page'}
-              </div>
-            </div>
-          )}
+    <Card className="backdrop-blur-sm bg-white/30 border border-gray-200 rounded-lg shadow-sm">
+      <CardHeader>
+        <CardTitle className="flex items-center justify-between">
+          <div className="flex items-center">
+            <span className="text-2xl mr-2">🎧</span>
+            Kenkan TTS
+          </div>
+          <div className={`w-3 h-3 rounded-full ${isConnected ? 'bg-green-500' : 'bg-red-500'}`} />
+        </CardTitle>
+      </CardHeader>
 
-          {/* Status */}
-          <div className="text-center">
-            <span className={`text-sm px-3 py-1 rounded-full ${
-              playbackState.isPlaying 
-                ? 'bg-green-100 text-green-800' 
-                : playbackState.isPaused 
+      <CardContent className="space-y-4">
+        {/* Current Reading Tab */}
+        {(playbackState.isPlaying || playbackState.isPaused) && (
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-medium text-blue-900">Currently Reading</span>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+                  if (tabs[0]?.id) {
+                    chrome.tabs.update(tabs[0].id, { active: true });
+                    window.close();
+                  }
+                })}
+                className="text-xs px-2 py-1 h-6"
+              >
+                Go to Tab
+              </Button>
+            </div>
+            <div className="text-xs text-blue-700 truncate" title={currentTab?.url}>
+              📄 {currentTab?.title || 'Current Page'}
+            </div>
+          </div>
+        )}
+
+        {/* Status */}
+        <div className="text-center">
+          <span className={`text-sm px-3 py-1 rounded-full ${playbackState.isPlaying
+              ? 'bg-green-100 text-green-800'
+              : playbackState.isPaused
                 ? 'bg-yellow-100 text-yellow-800'
                 : 'bg-gray-100 text-gray-800'
             }`}>
-              {playbackState.isPlaying ? '🔊 Playing' : playbackState.isPaused ? '⏸️ Paused' : '⏹️ Stopped'}
-            </span>
-          </div>
+            {playbackState.isPlaying ? '🔊 Playing' : playbackState.isPaused ? '⏸️ Paused' : '⏹️ Stopped'}
+          </span>
+        </div>
 
-          {/* Progress */}
-          {playbackState.totalSegments > 0 && (
-            <div className="space-y-2">
-              <div className="flex justify-between text-sm text-gray-600">
-                <span>Segment {playbackState.currentSegment + 1} of {playbackState.totalSegments}</span>
-                <span>{Math.round(progress)}%</span>
-              </div>
-              <div className="w-full bg-gray-200 rounded-full h-2">
-                <div
-                  className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-                  style={{ width: `${progress}%` }}
-                />
-              </div>
-            </div>
-          )}
-
-          {/* Main Controls */}
-          <div className="flex items-center justify-center space-x-3">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleStop}
-              disabled={!playbackState.isPlaying && !playbackState.isPaused}
-              className="w-10 h-10 p-0"
-            >
-              <Square className="w-4 h-4" />
-            </Button>
-            
-            <Button
-              onClick={playbackState.isPlaying ? handlePause : handlePlay}
-              className="w-12 h-12 p-0 rounded-full"
-            >
-              {playbackState.isPlaying ? (
-                <Pause className="w-5 h-5" />
-              ) : (
-                <Play className="w-5 h-5 ml-0.5" />
-              )}
-            </Button>
-
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setShowSettings(!showSettings)}
-              className="w-10 h-10 p-0"
-            >
-              <Settings className="w-4 h-4" />
-            </Button>
-          </div>
-
-          {/* Settings Panel */}
-          {showSettings && (
-            <div className="space-y-4 pt-4 border-t border-gray-200">
-              {/* Voice Selection */}
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-gray-700">Voice</label>
-                <select
-                  value={playbackState.voice}
-                  onChange={(e) => handleVoiceChange(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                >
-                  <option value="">Default Voice</option>
-                  <option value="Sandra">Sandra - Warm & Friendly</option>
-                  <option value="Kwesi">Kwesi - Authoritative</option>
-                  <option value="Kwame">Kwame - Storyteller</option>
-                  <option value="Akua">Akua - French Eloquent</option>
-                </select>
-              </div>
-
-              {/* Speed Control */}
-              <Slider
-                label="Speed"
-                value={playbackState.speed}
-                onChange={handleSpeedChange}
-                min={0.5}
-                max={3}
-                step={0.1}
-                formatValue={(val) => `${val.toFixed(1)}x`}
-              />
-
-              {/* Volume Control */}
-              <div className="space-y-2">
-                <div className="flex items-center text-sm font-medium text-gray-700">
-                  <Volume2 className="w-4 h-4 mr-1" />
-                  Volume
-                </div>
-                <Slider
-                  value={playbackState.volume}
-                  onChange={handleVolumeChange}
-                  min={0}
-                  max={1}
-                  step={0.05}
-                  formatValue={(val) => `${Math.round(val * 100)}%`}
-                  showValue={true}
-                />
-              </div>
-
-              {/* Pitch Control */}
-              <Slider
-                label="Pitch"
-                value={playbackState.pitch}
-                onChange={handlePitchChange}
-                min={0.5}
-                max={2}
-                step={0.1}
-                formatValue={(val) => `${val.toFixed(1)}`}
-              />
-            </div>
-          )}
-
-          {/* Statistics */}
-          <div className="pt-4 border-t border-gray-200">
-            <h3 className="font-medium text-gray-700 mb-2 flex items-center">
-              <Zap className="w-4 h-4 mr-1" />
-              Statistics
-            </h3>
-            <div className="grid grid-cols-2 gap-2 text-sm">
-              <div className="bg-blue-50 p-2 rounded">
-                <div className="font-medium text-blue-900">{stats.totalTabs}</div>
-                <div className="text-blue-600 text-xs">Total Tabs</div>
-              </div>
-              <div className="bg-green-50 p-2 rounded">
-                <div className="font-medium text-green-900">{stats.tabsWithContent}</div>
-                <div className="text-green-600 text-xs">With Content</div>
-              </div>
-              <div className="bg-purple-50 p-2 rounded">
-                <div className="font-medium text-purple-900">{stats.activeTabs}</div>
-                <div className="text-purple-600 text-xs">Active</div>
-              </div>
-              <div className="bg-orange-50 p-2 rounded">
-                <div className="font-medium text-orange-900">{stats.playingTabs}</div>
-                <div className="text-orange-600 text-xs">Playing</div>
-              </div>
-            </div>
-          </div>
-
-          {/* Quick Actions */}
+        {/* Progress */}
+        {playbackState.totalSegments > 0 && (
           <div className="space-y-2">
-            <Button 
-              variant="outline" 
-              size="sm" 
-              className="w-full"
-              onClick={() => chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-                if (tabs[0]?.id) {
-                  chrome.tabs.sendMessage(tabs[0].id, { action: 'refreshContent' });
-                }
-              })}
-            >
-              Refresh Content
-            </Button>
+            <div className="flex justify-between text-sm text-gray-600">
+              <span>Segment {playbackState.currentSegment + 1} of {playbackState.totalSegments}</span>
+              <span>{Math.round(progress)}%</span>
+            </div>
+            <div className="w-full bg-gray-200 rounded-full h-2">
+              <div
+                className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                style={{ width: `${progress}%` }}
+              />
+            </div>
           </div>
+        )}
 
-          {/* Footer */}
-          <div className="text-center text-xs text-gray-500 pt-2 border-t border-gray-200">
-            Kenkan v1.3.0 - AI-Powered Text-to-Speech with Custom Voices
+        {/* Main Controls */}
+        <div className="flex items-center justify-center space-x-3">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleStop}
+            disabled={!playbackState.isPlaying && !playbackState.isPaused}
+            className="w-10 h-10 p-0"
+          >
+            <Square className="w-4 h-4" />
+          </Button>
+
+          <Button
+            onClick={playbackState.isPlaying ? handlePause : handlePlay}
+            className="w-12 h-12 p-0 rounded-full"
+          >
+            {playbackState.isPlaying ? (
+              <Pause className="w-5 h-5" />
+            ) : (
+              <Play className="w-5 h-5 ml-0.5" />
+            )}
+          </Button>
+
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowSettings(!showSettings)}
+            className="w-10 h-10 p-0"
+          >
+            <Settings className="w-4 h-4" />
+          </Button>
+        </div>
+
+        {/* Settings Panel */}
+        {showSettings && (
+          <div className="space-y-4 pt-4 border-t border-gray-200">
+            {/* Voice Selection */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-gray-700">Voice</label>
+              <select
+                value={playbackState.voice}
+                onChange={(e) => handleVoiceChange(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md"
+              >
+                <option value="">Default Voice</option>
+                <option value="Sandra">Sandra - Warm & Friendly</option>
+                <option value="Kwesi">Kwesi - Authoritative</option>
+                <option value="Kwame">Kwame - Storyteller</option>
+                <option value="Akua">Akua - French Eloquent</option>
+              </select>
+            </div>
+
+            {/* Speed Control */}
+            <Slider
+              label="Speed"
+              value={playbackState.speed}
+              onChange={handleSpeedChange}
+              min={0.5}
+              max={3}
+              step={0.1}
+              formatValue={(val) => `${val.toFixed(1)}x`}
+            />
+
+            {/* Volume Control */}
+            <div className="space-y-2">
+              <div className="flex items-center text-sm font-medium text-gray-700">
+                <Volume2 className="w-4 h-4 mr-1" />
+                Volume
+              </div>
+              <Slider
+                value={playbackState.volume}
+                onChange={handleVolumeChange}
+                min={0}
+                max={1}
+                step={0.05}
+                formatValue={(val) => `${Math.round(val * 100)}%`}
+                showValue={true}
+              />
+            </div>
+
+            {/* Pitch Control */}
+            <Slider
+              label="Pitch"
+              value={playbackState.pitch}
+              onChange={handlePitchChange}
+              min={0.5}
+              max={2}
+              step={0.1}
+              formatValue={(val) => `${val.toFixed(1)}`}
+            />
           </div>
-        </CardContent>
-      </Card>
-    </div>
+        )}
+
+        {/* Statistics */}
+        <div className="pt-4 border-t border-gray-200">
+          <h3 className="font-medium text-gray-700 mb-2 flex items-center">
+            <Zap className="w-4 h-4 mr-1" />
+            Statistics
+          </h3>
+          <div className="grid grid-cols-2 gap-2 text-sm">
+            <div className="bg-blue-50 p-2 rounded">
+              <div className="font-medium text-blue-900">{stats.totalTabs}</div>
+              <div className="text-blue-600 text-xs">Total Tabs</div>
+            </div>
+            <div className="bg-green-50 p-2 rounded">
+              <div className="font-medium text-green-900">{stats.tabsWithContent}</div>
+              <div className="text-green-600 text-xs">With Content</div>
+            </div>
+            <div className="bg-purple-50 p-2 rounded">
+              <div className="font-medium text-purple-900">{stats.activeTabs}</div>
+              <div className="text-purple-600 text-xs">Active</div>
+            </div>
+            <div className="bg-orange-50 p-2 rounded">
+              <div className="font-medium text-orange-900">{stats.playingTabs}</div>
+              <div className="text-orange-600 text-xs">Playing</div>
+            </div>
+          </div>
+        </div>
+
+        {/* Quick Actions */}
+        <div className="space-y-2">
+          <Button
+            variant="outline"
+            size="sm"
+            className="w-full"
+            onClick={() => chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+              if (tabs[0]?.id) {
+                chrome.tabs.sendMessage(tabs[0].id, { action: 'refreshContent' });
+              }
+            })}
+          >
+            Refresh Content
+          </Button>
+        </div>
+
+        {/* Footer */}
+        <div className="text-center text-xs text-gray-500 pt-2 border-t border-gray-200">
+          Kenkan v1.3.0 - AI-Powered Text-to-Speech with Custom Voices
+        </div>
+      </CardContent>
+    </Card>
   );
 }
 

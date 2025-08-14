@@ -5,6 +5,25 @@ All notable changes to Kenkan will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.1] - 2025-08-14
+
+### 🎨 UI/UX Enhancements
+
+#### Enhanced Floating Button
+- **IMPROVED**: Floating button now draggable in all directions (previously horizontal-only)
+- **FIXED**: Button roundness with proper CSS overrides using `!rounded-full`
+- **ENHANCED**: Improved drag behavior with better event handling and visual feedback
+- **ADDED**: Proper cursor states (grab/grabbing) during drag operations
+- **OPTIMIZED**: Drag boundaries adjusted for better screen edge handling
+- **IMPROVED**: Prevented text selection and improved responsiveness during dragging
+
+### 🔧 Technical Improvements
+- **ENHANCED**: Mouse event handling with preventDefault for smoother dragging
+- **IMPROVED**: Drag state management with proper cleanup and cursor restoration
+- **OPTIMIZED**: Event listeners with passive flags for better performance
+
+---
+
 ## [1.3.0] - 2025-08-14
 
 ### 🎉 Major Features Added

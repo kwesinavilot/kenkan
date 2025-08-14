@@ -2,7 +2,7 @@
 
 > Transform any web content into natural, AI-enhanced speech with advanced text-to-speech capabilities.
 
-[![Version](https://img.shields.io/badge/version-1.3.0-blue.svg)](https://github.com/your-repo/kenkan)
+[![Version](https://img.shields.io/badge/version-1.3.1-blue.svg)](https://github.com/your-repo/kenkan)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.8-blue.svg)](https://www.typescriptlang.org/)
 [![React](https://img.shields.io/badge/React-19.1-blue.svg)](https://reactjs.org/)
@@ -14,11 +14,14 @@ Kenkan is a powerful Chrome extension that converts web content into high-qualit
 ## 🚀 Current Features
 
 ### 🎮 **Intuitive User Interface**
+- **Fully Draggable Floating Button** - Move anywhere on screen with smooth drag behavior
+- **Enhanced Button Design** - Perfect circular buttons with proper roundness
 - **Animated Hover Controls** - Smooth slide-up controls when hovering over floating button
 - **Visual State Feedback** - Blue 🎧 when ready, Green 🔊 when playing
 - **One-Click Speed Control** - Cycle through 6 speed levels (0.5x to 2.0x)
 - **Smart Popup Interface** - Shows current reading tab with quick navigation
 - **Professional Animations** - 60fps smooth transitions with cubic-bezier easing
+- **Improved Drag Experience** - Proper cursor states and visual feedback during dragging
 
 ### 📄 **Smart Content Extraction**
 - **HTML Content Reading** - Automatically detects and extracts readable content from web pages
@@ -116,8 +119,8 @@ Kenkan is a powerful Chrome extension that converts web content into high-qualit
 
 ## 📈 Development Status
 
-### ✅ **Completed Features (v1.3.0)**
-- **Complete UI/UX System** - Animated floating controls with hover interactions
+### ✅ **Completed Features (v1.3.1)**
+- **Complete UI/UX System** - Fully draggable floating controls with enhanced hover interactions
 - **Full Playback Control** - Play, pause, stop, resume, and speed cycling
 - **Smart Popup Interface** - Current reading tab display with navigation
 - **Core Content Extraction** - HTML and PDF text processing

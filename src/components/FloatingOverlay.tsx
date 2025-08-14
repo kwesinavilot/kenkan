@@ -48,6 +48,8 @@ export function FloatingOverlay({
   });
 
   const handleMouseDown = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
     setIsDragging(true);
     dragRef.current = {
       startX: e.clientX,
@@ -59,27 +61,36 @@ export function FloatingOverlay({
 
   const handleMouseMove = (e: MouseEvent) => {
     if (!isDragging) return;
+    
+    e.preventDefault();
 
     const deltaX = e.clientX - dragRef.current.startX;
     const deltaY = e.clientY - dragRef.current.startY;
 
-    const newX = Math.max(0, Math.min(window.innerWidth - 300, dragRef.current.startPosX + deltaX));
-    const newY = Math.max(0, Math.min(window.innerHeight - 200, dragRef.current.startPosY + deltaY));
+    // Allow full screen movement with proper boundaries
+    const newX = Math.max(0, Math.min(window.innerWidth - 320, dragRef.current.startPosX + deltaX));
+    const newY = Math.max(0, Math.min(window.innerHeight - 100, dragRef.current.startPosY + deltaY));
 
     setPosition({ x: newX, y: newY });
   };
 
-  const handleMouseUp = () => {
+  const handleMouseUp = (e: MouseEvent) => {
+    e.preventDefault();
     setIsDragging(false);
   };
 
   useEffect(() => {
     if (isDragging) {
-      document.addEventListener('mousemove', handleMouseMove);
-      document.addEventListener('mouseup', handleMouseUp);
+      document.addEventListener('mousemove', handleMouseMove, { passive: false });
+      document.addEventListener('mouseup', handleMouseUp, { passive: false });
+      document.body.style.userSelect = 'none';
+      document.body.style.cursor = 'grabbing';
+      
       return () => {
         document.removeEventListener('mousemove', handleMouseMove);
         document.removeEventListener('mouseup', handleMouseUp);
+        document.body.style.userSelect = '';
+        document.body.style.cursor = '';
       };
     }
   }, [isDragging]);
@@ -100,13 +111,13 @@ export function FloatingOverlay({
   if (isMinimized) {
     return (
       <div
-        className="fixed z-[10000] cursor-move"
+        className="fixed z-[10000] cursor-grab active:cursor-grabbing"
         style={{ left: position.x, top: position.y }}
         onMouseDown={handleMouseDown}
       >
         <Button
           onClick={handleMinimize}
-          className="rounded-full w-12 h-12 bg-blue-600 hover:bg-blue-700 shadow-lg"
+          className="!rounded-full w-12 h-12 bg-blue-600 hover:bg-blue-700 shadow-lg border-0"
         >
           🎧
         </Button>
@@ -122,7 +133,7 @@ export function FloatingOverlay({
       <Card className="w-80 shadow-xl border-2 border-blue-200 bg-white/95 backdrop-blur-sm">
         {/* Header */}
         <div
-          className="flex items-center justify-between p-3 bg-blue-50 cursor-move border-b"
+          className="flex items-center justify-between p-3 bg-blue-50 cursor-grab active:cursor-grabbing border-b"
           onMouseDown={handleMouseDown}
         >
           <div className="flex items-center space-x-2">
@@ -177,7 +188,7 @@ export function FloatingOverlay({
             
             <Button
               onClick={handlePlayPause}
-              className="w-12 h-12 p-0 rounded-full"
+              className="w-12 h-12 p-0 !rounded-full"
             >
               {isPlaying ? (
                 <Pause className="w-5 h-5" />
