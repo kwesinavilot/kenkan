@@ -47,6 +47,12 @@ function Popup() {
     tabsWithContent: 0,
     playingTabs: 0
   });
+  
+  const [currentTab, setCurrentTab] = useState<{
+    title: string;
+    url: string;
+    isReading: boolean;
+  } | null>(null);
 
   useEffect(() => {
     loadInitialData();
@@ -75,6 +81,17 @@ function Popup() {
       if (statsResponse.success && statsResponse.data) {
         setStats(statsResponse.data);
       }
+
+      // Get current tab info
+      chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+        if (tabs[0]) {
+          setCurrentTab({
+            title: tabs[0].title || 'Untitled',
+            url: tabs[0].url || '',
+            isReading: playbackState.isPlaying || playbackState.isPaused
+          });
+        }
+      });
 
       setIsConnected(true);
     } catch (error) {
@@ -172,6 +189,31 @@ function Popup() {
         </CardHeader>
         
         <CardContent className="space-y-4">
+          {/* Current Reading Tab */}
+          {(playbackState.isPlaying || playbackState.isPaused) && (
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium text-blue-900">Currently Reading</span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+                    if (tabs[0]?.id) {
+                      chrome.tabs.update(tabs[0].id, { active: true });
+                      window.close();
+                    }
+                  })}
+                  className="text-xs px-2 py-1 h-6"
+                >
+                  Go to Tab
+                </Button>
+              </div>
+              <div className="text-xs text-blue-700 truncate" title={currentTab?.url}>
+                📄 {currentTab?.title || 'Current Page'}
+              </div>
+            </div>
+          )}
+
           {/* Status */}
           <div className="text-center">
             <span className={`text-sm px-3 py-1 rounded-full ${
@@ -181,7 +223,7 @@ function Popup() {
                 ? 'bg-yellow-100 text-yellow-800'
                 : 'bg-gray-100 text-gray-800'
             }`}>
-              {playbackState.isPlaying ? 'Playing' : playbackState.isPaused ? 'Paused' : 'Stopped'}
+              {playbackState.isPlaying ? '🔊 Playing' : playbackState.isPaused ? '⏸️ Paused' : '⏹️ Stopped'}
             </span>
           </div>
 

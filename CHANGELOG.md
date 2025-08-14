@@ -8,10 +8,64 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Next Steps
-- Performance optimizations and caching
-- Advanced AI features and voice cloning
+- Voice selection and customization options
+- Reading progress visualization and bookmarks
 - Multi-language support and translation
-- Browser compatibility testing
+- Advanced AI features and voice cloning
+
+---
+
+## [1.1.0] - 2025-08-13
+
+### Added
+#### Enhanced User Experience - Animated Controls & Better Navigation
+- **Animated Hover Controls** ✨
+  - Smooth slide-up animation when hovering over floating TTS button
+  - Controls panel with Play/Pause, Stop, and Speed cycling buttons
+  - Cubic-bezier easing for professional feel
+  - Auto-hide functionality with 300ms delay for better usability
+
+- **Visual State Management** 🎨
+  - Dynamic button states: Blue 🎧 (ready) → Green 🔊 (playing)
+  - Real-time visual feedback for all playback states
+  - Smooth color transitions and hover effects
+  - Consistent iconography throughout the interface
+
+- **Speed Control System** ⚡
+  - One-click speed cycling through 6 levels: 0.5x, 0.75x, 1.0x, 1.25x, 1.5x, 2.0x
+  - Real-time speed adjustment during playback
+  - Visual speed indicator in control button
+  - Instant speed changes without interrupting reading
+
+- **Enhanced Popup Interface** 📱
+  - "Currently Reading" section shows active tab information
+  - "Go to Tab" button for quick navigation to reading page
+  - Real-time tab title and URL display
+  - Better status indicators with emoji feedback
+
+- **Complete Playback Control** 🎮
+  - Proper Play/Pause toggle functionality
+  - Stop button with full state reset
+  - Resume capability from last position
+  - Synchronized state between floating controls and popup
+
+### Enhanced
+- **Floating Button Positioning** - Moved to bottom-right for better accessibility
+- **Control Button Design** - Improved styling with hover animations
+- **State Synchronization** - Better coordination between content script and popup
+- **Error Handling** - Enhanced error messages for control operations
+
+### Files Modified
+- `src/content/index.ts` - Complete floating controls redesign (300+ lines added)
+- `src/popup/index.tsx` - Enhanced popup with tab navigation and status display
+- `package.json` & `public/manifest.json` - Version bump to 1.1.0
+
+### User Experience Improvements
+- **Intuitive Controls** - Hover to reveal, click to control
+- **Visual Feedback** - Clear state indication at all times
+- **Quick Navigation** - Jump between reading tab and extension popup
+- **Smooth Animations** - Professional feel with 60fps animations
+- **Accessibility** - Better button sizing and contrast ratios
 
 ---
 

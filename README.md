@@ -2,7 +2,7 @@
 
 > Transform any web content into natural, AI-enhanced speech with advanced text-to-speech capabilities.
 
-[![Version](https://img.shields.io/badge/version-0.4.0-blue.svg)](https://github.com/your-repo/kenkan)
+[![Version](https://img.shields.io/badge/version-1.1.0-blue.svg)](https://github.com/your-repo/kenkan)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.8-blue.svg)](https://www.typescriptlang.org/)
 [![React](https://img.shields.io/badge/React-19.1-blue.svg)](https://reactjs.org/)
@@ -12,6 +12,13 @@
 Kenkan is a powerful Chrome extension that converts web content into high-quality speech using advanced AI technology. Whether you're reading articles, PDFs, or any web content, Kenkan makes it accessible through natural-sounding text-to-speech with intelligent content processing.
 
 ## 🚀 Current Features
+
+### 🎮 **Intuitive User Interface**
+- **Animated Hover Controls** - Smooth slide-up controls when hovering over floating button
+- **Visual State Feedback** - Blue 🎧 when ready, Green 🔊 when playing
+- **One-Click Speed Control** - Cycle through 6 speed levels (0.5x to 2.0x)
+- **Smart Popup Interface** - Shows current reading tab with quick navigation
+- **Professional Animations** - 60fps smooth transitions with cubic-bezier easing
 
 ### 📄 **Smart Content Extraction**
 - **HTML Content Reading** - Automatically detects and extracts readable content from web pages
@@ -23,7 +30,8 @@ Kenkan is a powerful Chrome extension that converts web content into high-qualit
 - **Chrome TTS Integration** - Native Chrome text-to-speech with full voice control
 - **Web Speech API Fallback** - Cross-platform compatibility when Chrome TTS unavailable
 - **Voice Selection** - Choose from all available system voices with smart defaults
-- **Playback Controls** - Play, pause, stop, speed control (0.1x - 10x), volume, and pitch adjustment
+- **Complete Playback Controls** - Play, pause, stop, resume with position memory
+- **Real-time Speed Adjustment** - Change speed during playback without interruption
 - **AI Text Enhancement** - Uses OpenAI GPT to improve text naturalness for better speech
 
 ### 🛡️ **Robust Error Handling**
@@ -75,27 +83,25 @@ Kenkan is a powerful Chrome extension that converts web content into high-qualit
 
 ## 📈 Development Status
 
-### ✅ **Completed Features (v0.4.0)**
-- Core content extraction system
-- Advanced PDF text extraction
-- Complete TTS management system
-- AI-powered text enhancement
-- Comprehensive error handling
-- Performance monitoring
-
-### 🚧 **In Development**
-- Background service worker for state management
-- Floating UI overlay with controls
-- User preferences and settings
-- Real-time text highlighting
-- Cross-tab synchronization
+### ✅ **Completed Features (v1.1.0)**
+- **Complete UI/UX System** - Animated floating controls with hover interactions
+- **Full Playback Control** - Play, pause, stop, resume, and speed cycling
+- **Smart Popup Interface** - Current reading tab display with navigation
+- **Core Content Extraction** - HTML and PDF text processing
+- **Advanced TTS Engine** - Chrome TTS with Web Speech API fallback
+- **Cross-tab State Management** - Background service worker coordination
+- **Persistent Storage** - User preferences and reading progress
+- **Real-time Text Highlighting** - Synchronized highlighting during playback
+- **Comprehensive Error Handling** - Multi-level fallbacks and recovery
+- **AI Text Enhancement** - OpenAI integration for natural speech
 
 ### 🔮 **Planned Features**
-- OCR support for image-based content
-- Custom voice training
-- Reading progress tracking
-- Accessibility enhancements
-- Performance analytics
+- **Voice Customization** - Custom voice selection and training
+- **Reading Analytics** - Progress tracking and reading statistics
+- **OCR Support** - Image-based content extraction
+- **Multi-language Support** - International language detection
+- **Accessibility Enhancements** - Screen reader integration
+- **Performance Analytics** - Usage metrics and optimization
 
 ## 🛠️ Installation & Development
 
@@ -128,12 +134,16 @@ npm run build:extension
 
 ## 📋 Requirements Satisfied
 
+- ✅ **User Interface** - Animated floating controls with professional UX design
+- ✅ **Playback Control** - Complete TTS control with visual state feedback
+- ✅ **Navigation** - Smart popup with current reading tab and quick jump
 - ✅ **Content Extraction** - HTML and PDF text extraction with intelligent filtering
 - ✅ **TTS Integration** - Chrome TTS API with Web Speech API fallback
-- ✅ **Voice Controls** - Complete voice selection and playback controls
+- ✅ **Voice Controls** - Complete voice selection and real-time speed adjustment
+- ✅ **State Management** - Cross-tab synchronization and persistent storage
 - ✅ **Error Handling** - Comprehensive error recovery and fallback mechanisms
 - ✅ **AI Enhancement** - Text optimization for natural speech synthesis
-- ✅ **Performance** - Efficient processing and memory management
+- ✅ **Performance** - Efficient processing and smooth 60fps animations
 
 ## 🤝 Contributing
 

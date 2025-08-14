@@ -46,47 +46,140 @@ class KenkanContentScript {
   }
 
   private createFloatingButton(): void {
+    // Create container for button and controls
+    const container = document.createElement('div');
+    container.id = 'kenkan-floating-container';
+    container.style.cssText = `
+      position: fixed;
+      bottom: 25px;
+      right: 25px;
+      z-index: 10000;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 8px;
+    `;
+
+    // Main floating button
     const button = document.createElement('button');
+    button.id = 'kenkan-main-button';
     button.innerHTML = '🎧';
     button.title = 'Kenkan TTS - Click to start reading';
     button.style.cssText = `
-      position: fixed;
-      bottom: 35px;
-      right: 25px;
-      z-index: 10000;
       background: #3b82f6;
       color: white;
       border: none;
       border-radius: 50%;
-      width: 50px;
-      height: 50px;
+      width: 56px;
+      height: 56px;
       font-size: 24px;
       cursor: pointer;
       box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
-      transition: all 0.3s ease;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
       display: flex;
       align-items: center;
       justify-content: center;
     `;
 
-    button.addEventListener('mouseenter', () => {
-      button.style.background = '#2563eb';
-      button.style.transform = 'translateY(-2px) scale(1.05)';
-      button.style.boxShadow = '0 6px 20px rgba(59, 130, 246, 0.6)';
-    });
+    // Controls panel
+    const controls = document.createElement('div');
+    controls.id = 'kenkan-controls';
+    controls.style.cssText = `
+      background: white;
+      border: 2px solid #3b82f6;
+      border-radius: 12px;
+      padding: 12px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+      backdrop-filter: blur(10px);
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      min-width: 200px;
+      opacity: 0;
+      transform: translateY(20px) scale(0.8);
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      pointer-events: none;
+    `;
 
-    button.addEventListener('mouseleave', () => {
-      button.style.background = '#3b82f6';
-      button.style.transform = 'translateY(0) scale(1)';
-      button.style.boxShadow = '0 4px 12px rgba(59, 130, 246, 0.4)';
-    });
+    // Control buttons
+    const playPauseBtn = this.createControlButton('⏯️', 'Play/Pause', () => this.togglePlayPause());
+    const stopBtn = this.createControlButton('⏹️', 'Stop', () => this.stopReading());
+    const speedBtn = this.createControlButton('⚡', 'Speed: 1.0x', () => this.cycleSpeed());
+
+    controls.appendChild(playPauseBtn);
+    controls.appendChild(stopBtn);
+    controls.appendChild(speedBtn);
+
+    container.appendChild(controls);
+    container.appendChild(button);
+
+    // Hover events for smooth animation
+    let hoverTimeout: NodeJS.Timeout;
+
+    const showControls = () => {
+      clearTimeout(hoverTimeout);
+      controls.style.opacity = '1';
+      controls.style.transform = 'translateY(0) scale(1)';
+      controls.style.pointerEvents = 'auto';
+      button.style.background = '#2563eb';
+      button.style.transform = 'scale(1.05)';
+      button.style.boxShadow = '0 6px 20px rgba(59, 130, 246, 0.6)';
+    };
+
+    const hideControls = () => {
+      hoverTimeout = setTimeout(() => {
+        controls.style.opacity = '0';
+        controls.style.transform = 'translateY(20px) scale(0.8)';
+        controls.style.pointerEvents = 'none';
+        button.style.background = this.isActive ? '#10b981' : '#3b82f6';
+        button.style.transform = 'scale(1)';
+        button.style.boxShadow = '0 4px 12px rgba(59, 130, 246, 0.4)';
+      }, 300);
+    };
+
+    container.addEventListener('mouseenter', showControls);
+    container.addEventListener('mouseleave', hideControls);
 
     button.addEventListener('click', () => {
       this.toggleTTS();
     });
 
-    document.body.appendChild(button);
-    console.log('Kenkan floating button added to page');
+    document.body.appendChild(container);
+    console.log('Kenkan floating controls added to page');
+  }
+
+  private createControlButton(icon: string, title: string, onClick: () => void): HTMLButtonElement {
+    const btn = document.createElement('button');
+    btn.innerHTML = `<span style="margin-right: 8px;">${icon}</span><span style="font-size: 12px;">${title}</span>`;
+    btn.title = title;
+    btn.style.cssText = `
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 6px;
+      padding: 8px 12px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      font-size: 12px;
+      color: #374151;
+      width: 100%;
+    `;
+
+    btn.addEventListener('mouseenter', () => {
+      btn.style.background = '#3b82f6';
+      btn.style.color = 'white';
+      btn.style.transform = 'translateX(-2px)';
+    });
+
+    btn.addEventListener('mouseleave', () => {
+      btn.style.background = '#f8fafc';
+      btn.style.color = '#374151';
+      btn.style.transform = 'translateX(0)';
+    });
+
+    btn.addEventListener('click', onClick);
+    return btn;
   }
 
   private async detectAndExtractContent(): Promise<void> {
@@ -205,12 +298,14 @@ class KenkanContentScript {
         this.isActive = false;
         this.highlighter.clearHighlight();
         this.hideOverlay();
+        this.updateButtonState();
       } else {
         // Start TTS
         const response = await this.sendMessage({ action: 'startReading' });
         if (response.success) {
           this.isActive = true;
           this.showOverlay();
+          this.updateButtonState();
         } else {
           alert(`Failed to start reading: ${response.error || 'Unknown error'}`);
         }
@@ -307,19 +402,19 @@ class KenkanContentScript {
     }
   }
 
-  private async togglePlayPause(): Promise<void> {
-    try {
-      const state = await this.sendMessage({ action: 'getPlaybackState' });
+  // private async togglePlayPause(): Promise<void> {
+  //   try {
+  //     const state = await this.sendMessage({ action: 'getPlaybackState' });
 
-      if (state.data?.isPlaying) {
-        await this.sendMessage({ action: 'pauseReading' });
-      } else {
-        await this.sendMessage({ action: 'resumeReading' });
-      }
-    } catch (error) {
-      console.error('Error toggling play/pause:', error);
-    }
-  }
+  //     if (state.data?.isPlaying) {
+  //       await this.sendMessage({ action: 'pauseReading' });
+  //     } else {
+  //       await this.sendMessage({ action: 'resumeReading' });
+  //     }
+  //   } catch (error) {
+  //     console.error('Error toggling play/pause:', error);
+  //   }
+  // }
 
   private async stopReading(): Promise<void> {
     try {
@@ -327,8 +422,62 @@ class KenkanContentScript {
       this.isActive = false;
       this.highlighter.clearHighlight();
       this.hideOverlay();
+      this.updateButtonState();
     } catch (error) {
       console.error('Error stopping reading:', error);
+    }
+  }
+
+  private async togglePlayPause(): Promise<void> {
+    try {
+      const state = await this.sendMessage({ action: 'getPlaybackState' });
+
+      if (state.data?.isPlaying) {
+        await this.sendMessage({ action: 'pauseReading' });
+      } else {
+        if (this.isActive) {
+          await this.sendMessage({ action: 'resumeReading' });
+        } else {
+          await this.toggleTTS();
+        }
+      }
+      this.updateButtonState();
+    } catch (error) {
+      console.error('Error toggling play/pause:', error);
+    }
+  }
+
+  private currentSpeed = 1.0;
+  private speedOptions = [0.5, 0.75, 1.0, 1.25, 1.5, 2.0];
+
+  private async cycleSpeed(): Promise<void> {
+    try {
+      const currentIndex = this.speedOptions.indexOf(this.currentSpeed);
+      const nextIndex = (currentIndex + 1) % this.speedOptions.length;
+      this.currentSpeed = this.speedOptions[nextIndex];
+
+      await this.sendMessage({ action: 'setSpeed', data: { speed: this.currentSpeed } });
+
+      // Update speed button text
+      const speedBtn = document.querySelector('#kenkan-controls button:nth-child(3)') as HTMLButtonElement;
+      if (speedBtn) {
+        speedBtn.innerHTML = `<span style="margin-right: 8px;">⚡</span><span style="font-size: 12px;">Speed: ${this.currentSpeed}x</span>`;
+      }
+    } catch (error) {
+      console.error('Error changing speed:', error);
+    }
+  }
+
+  private updateButtonState(): void {
+    const button = document.getElementById('kenkan-main-button') as HTMLButtonElement;
+    if (button) {
+      if (this.isActive) {
+        button.style.background = '#10b981'; // Green when active
+        button.innerHTML = '🔊';
+      } else {
+        button.style.background = '#3b82f6'; // Blue when inactive
+        button.innerHTML = '🎧';
+      }
     }
   }
 
