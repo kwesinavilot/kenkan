@@ -9,9 +9,69 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Next Steps
 - Voice selection and customization options
-- Reading progress visualization and bookmarks
+- Reading bookmarks and history
 - Multi-language support and translation
 - Advanced AI features and voice cloning
+
+---
+
+## [1.2.0] - 2025-08-13
+
+### Added
+#### Premium Polish Features - Enhanced UX & Accessibility
+- **Reading Progress Visualization** 📊
+  - Real-time progress bar in floating controls
+  - Segment counter with percentage display
+  - Smooth progress animations during playback
+  - Visual feedback for reading position
+
+- **Comprehensive Keyboard Shortcuts** ⌨️
+  - `Ctrl/Cmd + Space`: Play/Pause toggle
+  - `Ctrl/Cmd + S`: Stop reading
+  - `Ctrl/Cmd + R`: Start reading
+  - `Ctrl/Cmd + ↑/↓`: Adjust speed up/down
+  - Built-in help tooltip with shortcut reference
+  - Smart input field detection (shortcuts disabled when typing)
+
+- **Adaptive Dark Mode Support** 🌙
+  - Automatic system theme detection
+  - Page background color analysis for smart theming
+  - Real-time theme switching with system preferences
+  - Dark/light theme for all UI components
+  - Consistent theming across floating controls and buttons
+
+- **Custom Button Positioning** 🎯
+  - Drag-and-drop floating button repositioning
+  - Position persistence across browser sessions
+  - Smart boundary detection to keep button visible
+  - Visual drag feedback with cursor changes
+  - Automatic position saving to Chrome storage
+
+- **Enhanced Control Interface** ✨
+  - Keyboard shortcuts help button
+  - Improved button hover effects with theme awareness
+  - Better visual hierarchy in controls panel
+  - Smooth animations for all interactions
+
+### Enhanced
+- **Progress Tracking** - Real-time updates sent from background to content script
+- **Theme System** - Comprehensive dark/light mode with automatic detection
+- **User Experience** - Drag functionality with click detection to prevent accidental triggers
+- **Accessibility** - Keyboard shortcuts for power users and accessibility needs
+- **Visual Polish** - Consistent theming and smooth animations throughout
+
+### Files Modified
+- `src/content/index.ts` - Added 200+ lines for new features
+- `src/background/index.ts` - Progress update messaging
+- `src/background/messageHandler.ts` - Button position storage
+- `package.json` & `public/manifest.json` - Version bump to 1.2.0
+
+### Technical Improvements
+- **Smart Theme Detection** - Analyzes page background and system preferences
+- **Efficient Progress Updates** - Optimized messaging between background and content
+- **Persistent Settings** - Button position saved to Chrome local storage
+- **Keyboard Event Handling** - Proper input field detection and event management
+- **Drag System** - Smooth dragging with boundary constraints
 
 ---
 

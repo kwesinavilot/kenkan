@@ -151,6 +151,22 @@ ttsManager.addEventListener('boundary', async (event) => {
         currentPosition: event.charIndex || 0
       });
 
+      // Send progress update to content script
+      const progress = activeTab.playbackState.totalSegments > 0 
+        ? (activeTab.playbackState.currentSegment / activeTab.playbackState.totalSegments) * 100 
+        : 0;
+
+      chrome.tabs.sendMessage(activeTab.tabId, {
+        action: 'updateProgress',
+        data: {
+          currentSegment: activeTab.playbackState.currentSegment,
+          totalSegments: activeTab.playbackState.totalSegments,
+          progress
+        }
+      }).catch(() => {
+        // Ignore if content script is not available
+      });
+
       // Save progress every 100 boundary events (reduced frequency)
       if ((event.charIndex || 0) % 100 === 0 && activeTab.content) {
         await storageManager.saveProgress(activeTab.content.id, {

@@ -12,6 +12,9 @@ class KenkanContentScript {
   private currentContent: TextContent | null = null;
   private highlighter = getGlobalHighlighter();
   private overlayContainer: HTMLDivElement | null = null;
+  private isDarkMode = false;
+  private buttonPosition = { bottom: 25, right: 25 };
+  private isDragging = false;
 
   constructor() {
     this.initialize();
@@ -31,12 +34,120 @@ class KenkanContentScript {
         this.handleMessage(message, sender, sendResponse);
         return true;
       });
+
+      // Set up keyboard shortcuts
+      this.setupKeyboardShortcuts();
+
+      // Detect dark mode
+      this.detectDarkMode();
     } catch (error) {
       console.error('Error initializing Kenkan content script:', error);
     }
   }
 
-  private setup(): void {
+  private detectDarkMode(): void {
+    // Check system preference
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    
+    // Check if page has dark background
+    const bodyBg = window.getComputedStyle(document.body).backgroundColor;
+    const htmlBg = window.getComputedStyle(document.documentElement).backgroundColor;
+    
+    // Simple heuristic: if background is dark, use dark mode
+    const isDarkBackground = this.isColorDark(bodyBg) || this.isColorDark(htmlBg);
+    
+    this.isDarkMode = prefersDark || isDarkBackground;
+    
+    // Listen for system theme changes
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
+      this.isDarkMode = e.matches;
+      this.updateTheme();
+    });
+  }
+
+  private isColorDark(color: string): boolean {
+    // Convert RGB to luminance
+    const rgb = color.match(/\d+/g);
+    if (!rgb || rgb.length < 3) return false;
+    
+    const [r, g, b] = rgb.map(Number);
+    const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+    return luminance < 0.5;
+  }
+
+  private updateTheme(): void {
+    const container = document.getElementById('kenkan-floating-container');
+    const controls = document.getElementById('kenkan-controls');
+    
+    if (container && controls) {
+      this.applyTheme(controls);
+    }
+  }
+
+  private setupKeyboardShortcuts(): void {
+    document.addEventListener('keydown', (event) => {
+      // Only handle shortcuts when not typing in input fields
+      if (event.target instanceof HTMLInputElement || 
+          event.target instanceof HTMLTextAreaElement || 
+          (event.target as HTMLElement).contentEditable === 'true') {
+        return;
+      }
+
+      // Handle keyboard shortcuts
+      switch (event.code) {
+        case 'Space':
+          if (event.ctrlKey || event.metaKey) {
+            event.preventDefault();
+            this.togglePlayPause();
+          }
+          break;
+        case 'KeyS':
+          if (event.ctrlKey || event.metaKey) {
+            event.preventDefault();
+            this.stopReading();
+          }
+          break;
+        case 'KeyR':
+          if (event.ctrlKey || event.metaKey) {
+            event.preventDefault();
+            this.toggleTTS();
+          }
+          break;
+        case 'ArrowUp':
+          if (event.ctrlKey || event.metaKey) {
+            event.preventDefault();
+            this.adjustSpeed(0.1);
+          }
+          break;
+        case 'ArrowDown':
+          if (event.ctrlKey || event.metaKey) {
+            event.preventDefault();
+            this.adjustSpeed(-0.1);
+          }
+          break;
+      }
+    });
+  }
+
+  private async adjustSpeed(delta: number): Promise<void> {
+    try {
+      this.currentSpeed = Math.max(0.5, Math.min(3.0, this.currentSpeed + delta));
+      await this.sendMessage({ action: 'setSpeed', data: { speed: this.currentSpeed } });
+      
+      // Update speed button text
+      const speedBtn = document.querySelector('#kenkan-controls button:nth-child(3)') as HTMLButtonElement;
+      if (speedBtn) {
+        speedBtn.innerHTML = `<span style="margin-right: 8px;">⚡</span><span style="font-size: 12px;">Speed: ${this.currentSpeed.toFixed(1)}x</span>`;
+      }
+    } catch (error) {
+      console.error('Error adjusting speed:', error);
+    }
+  }
+
+  private async setup(): Promise<void> {
+    // Load saved button position
+    await this.loadButtonPosition();
+    
     this.createFloatingButton();
 
     // Debounce content extraction to avoid excessive processing
@@ -51,13 +162,14 @@ class KenkanContentScript {
     container.id = 'kenkan-floating-container';
     container.style.cssText = `
       position: fixed;
-      bottom: 25px;
-      right: 25px;
+      bottom: ${this.buttonPosition.bottom}px;
+      right: ${this.buttonPosition.right}px;
       z-index: 10000;
       display: flex;
       flex-direction: column;
       align-items: flex-end;
       gap: 8px;
+      cursor: move;
     `;
 
     // Main floating button
@@ -84,31 +196,61 @@ class KenkanContentScript {
     // Controls panel
     const controls = document.createElement('div');
     controls.id = 'kenkan-controls';
-    controls.style.cssText = `
-      background: white;
-      border: 2px solid #3b82f6;
-      border-radius: 12px;
-      padding: 12px;
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
-      backdrop-filter: blur(10px);
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-      min-width: 200px;
-      opacity: 0;
-      transform: translateY(20px) scale(0.8);
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-      pointer-events: none;
+    this.applyTheme(controls);
+
+    // Progress bar
+    const progressContainer = document.createElement('div');
+    progressContainer.style.cssText = `
+      margin-bottom: 8px;
+      padding: 4px 0;
     `;
+    
+    const progressLabel = document.createElement('div');
+    progressLabel.id = 'kenkan-progress-label';
+    progressLabel.style.cssText = `
+      font-size: 10px;
+      color: #6b7280;
+      margin-bottom: 4px;
+      text-align: center;
+    `;
+    progressLabel.textContent = 'Ready to read';
+    
+    const progressBar = document.createElement('div');
+    progressBar.style.cssText = `
+      width: 100%;
+      height: 4px;
+      background: #e5e7eb;
+      border-radius: 2px;
+      overflow: hidden;
+    `;
+    
+    const progressFill = document.createElement('div');
+    progressFill.id = 'kenkan-progress-fill';
+    progressFill.style.cssText = `
+      width: 0%;
+      height: 100%;
+      background: linear-gradient(90deg, #3b82f6, #1d4ed8);
+      border-radius: 2px;
+      transition: width 0.3s ease;
+    `;
+    
+    progressBar.appendChild(progressFill);
+    progressContainer.appendChild(progressLabel);
+    progressContainer.appendChild(progressBar);
 
     // Control buttons
     const playPauseBtn = this.createControlButton('⏯️', 'Play/Pause', () => this.togglePlayPause());
     const stopBtn = this.createControlButton('⏹️', 'Stop', () => this.stopReading());
     const speedBtn = this.createControlButton('⚡', 'Speed: 1.0x', () => this.cycleSpeed());
 
+    // Keyboard shortcuts help
+    const helpBtn = this.createControlButton('⌨️', 'Shortcuts', () => this.showKeyboardHelp());
+
+    controls.appendChild(progressContainer);
     controls.appendChild(playPauseBtn);
     controls.appendChild(stopBtn);
     controls.appendChild(speedBtn);
+    controls.appendChild(helpBtn);
 
     container.appendChild(controls);
     container.appendChild(button);
@@ -140,12 +282,106 @@ class KenkanContentScript {
     container.addEventListener('mouseenter', showControls);
     container.addEventListener('mouseleave', hideControls);
 
-    button.addEventListener('click', () => {
-      this.toggleTTS();
+    button.addEventListener('click', (e) => {
+      if (!this.isDragging) {
+        this.toggleTTS();
+      }
     });
+
+    // Add drag functionality
+    this.setupDragFunctionality(container, button);
 
     document.body.appendChild(container);
     console.log('Kenkan floating controls added to page');
+  }
+
+  private setupDragFunctionality(container: HTMLElement, button: HTMLElement): void {
+    let startX = 0, startY = 0, startBottom = 0, startRight = 0;
+
+    const onMouseDown = (e: MouseEvent) => {
+      if (e.target !== button) return;
+      
+      this.isDragging = false;
+      startX = e.clientX;
+      startY = e.clientY;
+      startBottom = this.buttonPosition.bottom;
+      startRight = this.buttonPosition.right;
+      
+      document.addEventListener('mousemove', onMouseMove);
+      document.addEventListener('mouseup', onMouseUp);
+      e.preventDefault();
+    };
+
+    const onMouseMove = (e: MouseEvent) => {
+      const deltaX = startX - e.clientX;
+      const deltaY = e.clientY - startY;
+      
+      // Mark as dragging if moved more than 5px
+      if (Math.abs(deltaX) > 5 || Math.abs(deltaY) > 5) {
+        this.isDragging = true;
+      }
+      
+      const newRight = Math.max(10, Math.min(window.innerWidth - 70, startRight + deltaX));
+      const newBottom = Math.max(10, Math.min(window.innerHeight - 70, startBottom + deltaY));
+      
+      this.buttonPosition = { bottom: newBottom, right: newRight };
+      
+      container.style.bottom = `${newBottom}px`;
+      container.style.right = `${newRight}px`;
+    };
+
+    const onMouseUp = () => {
+      document.removeEventListener('mousemove', onMouseMove);
+      document.removeEventListener('mouseup', onMouseUp);
+      
+      // Save position to storage
+      this.saveButtonPosition();
+      
+      // Reset dragging flag after a short delay
+      setTimeout(() => {
+        this.isDragging = false;
+      }, 100);
+    };
+
+    button.addEventListener('mousedown', onMouseDown);
+  }
+
+  private async saveButtonPosition(): Promise<void> {
+    try {
+      await this.sendMessage({
+        action: 'saveButtonPosition',
+        data: this.buttonPosition
+      });
+    } catch (error) {
+      console.error('Error saving button position:', error);
+    }
+  }
+
+  private async loadButtonPosition(): Promise<void> {
+    try {
+      const response = await this.sendMessage({ action: 'getButtonPosition' });
+      if (response.success && response.data) {
+        this.buttonPosition = response.data;
+      }
+    } catch (error) {
+      console.error('Error loading button position:', error);
+    }
+  }
+
+  private showKeyboardHelp(): void {
+    const helpText = `
+🎧 Kenkan Keyboard Shortcuts:
+
+Ctrl/Cmd + Space: Play/Pause
+Ctrl/Cmd + S: Stop
+Ctrl/Cmd + R: Start Reading
+Ctrl/Cmd + ↑: Speed Up
+Ctrl/Cmd + ↓: Speed Down
+
+💡 Tip: You can drag the floating button to reposition it!
+    `;
+    
+    alert(helpText.trim());
   }
 
   private createControlButton(icon: string, title: string, onClick: () => void): HTMLButtonElement {
@@ -153,8 +389,6 @@ class KenkanContentScript {
     btn.innerHTML = `<span style="margin-right: 8px;">${icon}</span><span style="font-size: 12px;">${title}</span>`;
     btn.title = title;
     btn.style.cssText = `
-      background: #f8fafc;
-      border: 1px solid #e2e8f0;
       border-radius: 6px;
       padding: 8px 12px;
       cursor: pointer;
@@ -162,19 +396,19 @@ class KenkanContentScript {
       display: flex;
       align-items: center;
       font-size: 12px;
-      color: #374151;
       width: 100%;
+      border: 1px solid;
     `;
 
     btn.addEventListener('mouseenter', () => {
-      btn.style.background = '#3b82f6';
+      btn.style.background = btn.dataset.hoverBg || '#3b82f6';
       btn.style.color = 'white';
       btn.style.transform = 'translateX(-2px)';
     });
 
     btn.addEventListener('mouseleave', () => {
-      btn.style.background = '#f8fafc';
-      btn.style.color = '#374151';
+      btn.style.background = btn.dataset.normalBg || '#f8fafc';
+      btn.style.color = btn.dataset.normalColor || '#374151';
       btn.style.transform = 'translateX(0)';
     });
 
@@ -481,6 +715,86 @@ class KenkanContentScript {
     }
   }
 
+  private updateProgressDisplay(data: { currentSegment: number; totalSegments: number; progress: number }): void {
+    const progressFill = document.getElementById('kenkan-progress-fill');
+    const progressLabel = document.getElementById('kenkan-progress-label');
+    
+    if (progressFill && progressLabel) {
+      progressFill.style.width = `${data.progress}%`;
+      progressLabel.textContent = `Reading ${data.currentSegment + 1} of ${data.totalSegments} (${Math.round(data.progress)}%)`;
+    }
+  }
+
+  private applyTheme(controls: HTMLElement): void {
+    const theme = this.isDarkMode ? {
+      background: '#1f2937',
+      border: '2px solid #4f46e5',
+      color: '#f9fafb',
+      shadow: '0 8px 32px rgba(0, 0, 0, 0.4)',
+      progressLabelColor: '#9ca3af',
+      progressBg: '#374151',
+      buttonBg: '#374151',
+      buttonBorder: '#4b5563',
+      buttonColor: '#f9fafb',
+      buttonHoverBg: '#4f46e5'
+    } : {
+      background: 'white',
+      border: '2px solid #3b82f6',
+      color: '#1f2937',
+      shadow: '0 8px 32px rgba(0, 0, 0, 0.2)',
+      progressLabelColor: '#6b7280',
+      progressBg: '#e5e7eb',
+      buttonBg: '#f8fafc',
+      buttonBorder: '#e2e8f0',
+      buttonColor: '#374151',
+      buttonHoverBg: '#3b82f6'
+    };
+
+    controls.style.cssText = `
+      background: ${theme.background};
+      border: ${theme.border};
+      color: ${theme.color};
+      border-radius: 12px;
+      padding: 12px;
+      box-shadow: ${theme.shadow};
+      backdrop-filter: blur(10px);
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      min-width: 200px;
+      opacity: 0;
+      transform: translateY(20px) scale(0.8);
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      pointer-events: none;
+    `;
+
+    // Update progress label color
+    const progressLabel = controls.querySelector('#kenkan-progress-label') as HTMLElement;
+    if (progressLabel) {
+      progressLabel.style.color = theme.progressLabelColor;
+    }
+
+    // Update progress bar background
+    const progressBar = controls.querySelector('#kenkan-progress-fill')?.parentElement as HTMLElement;
+    if (progressBar) {
+      progressBar.style.background = theme.progressBg;
+    }
+
+    // Update button themes
+    const buttons = controls.querySelectorAll('button');
+    buttons.forEach(button => {
+      const btn = button as HTMLButtonElement;
+      btn.style.background = theme.buttonBg;
+      btn.style.borderColor = theme.buttonBorder;
+      btn.style.color = theme.buttonColor;
+      
+      // Store theme colors for hover effects
+      btn.dataset.hoverBg = theme.buttonHoverBg;
+      btn.dataset.normalBg = theme.buttonBg;
+      btn.dataset.normalColor = theme.buttonColor;
+    });
+  }
+
   private async handleMessage(message: any, sender: any, sendResponse: (response: any) => void): Promise<void> {
     try {
       console.log('Message sent from: ' + sender)
@@ -506,6 +820,11 @@ class KenkanContentScript {
         case 'refreshContent':
           await this.detectAndExtractContent();
           sendResponse({ success: true, data: this.currentContent });
+          break;
+
+        case 'updateProgress':
+          this.updateProgressDisplay(message.data);
+          sendResponse({ success: true });
           break;
 
         case 'test':

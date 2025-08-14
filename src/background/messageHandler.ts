@@ -194,6 +194,26 @@ export class MessageHandler {
           });
           break;
 
+        case 'saveButtonPosition':
+          if (!message.data) {
+            sendResponse({ success: false, error: 'No position data provided' });
+            return;
+          }
+          // Save to Chrome storage
+          chrome.storage.local.set({ buttonPosition: message.data }, () => {
+            sendResponse({ success: true });
+          });
+          break;
+
+        case 'getButtonPosition':
+          chrome.storage.local.get(['buttonPosition'], (result) => {
+            sendResponse({ 
+              success: true, 
+              data: result.buttonPosition || { bottom: 25, right: 25 }
+            });
+          });
+          break;
+
         case 'test':
           console.log('Test message received in background script');
           sendResponse({ 
