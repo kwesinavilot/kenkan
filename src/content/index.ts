@@ -3,6 +3,7 @@ import { getGlobalHighlighter } from '../utils/textHighlighter';
 import { findMainContentContainer, extractTextSegments, generateContentId } from '../utils/contentExtraction';
 import { cleanTextForTTS, isValidTTSText } from '../utils/textProcessing';
 import { isPDFJSDocument, extractPDFText, getPDFMetadata } from '../utils/pdfExtraction';
+import { detectContentType, getContentMetrics } from '../utils/contentTypeDetection';
 import type { TextContent } from '../types/content';
 
 console.log('Kenkan Chrome Extension content script loaded');
@@ -451,6 +452,8 @@ Ctrl/Cmd + ↓: Speed Down
               return count + segment.text.split(/\s+/).length;
             }, 0);
 
+            const contentType = detectContentType();
+
             result = {
               success: true,
               content: {
@@ -461,7 +464,9 @@ Ctrl/Cmd + ↓: Speed Down
                   title: document.title || 'Untitled Page',
                   url: window.location.href,
                   extractedAt: new Date(),
-                  wordCount
+                  wordCount,
+                  contentType: contentType.type,
+                  confidence: contentType.confidence
                 }
               }
             };
@@ -498,7 +503,9 @@ Ctrl/Cmd + ↓: Speed Down
                   title: pdfMetadata.title || document.title || 'PDF Document',
                   url: window.location.href,
                   extractedAt: new Date(),
-                  wordCount
+                  wordCount,
+                  contentType: 'PDF Document',
+                  confidence: 0.95
                 }
               }
             };
@@ -836,6 +843,18 @@ Ctrl/Cmd + ↓: Speed Down
         case 'updateProgress':
           this.updateProgressDisplay(message.data);
           sendResponse({ success: true });
+          break;
+
+        case 'getWordCount':
+          const contentType = detectContentType();
+          const metrics = getContentMetrics();
+          sendResponse({ 
+            success: true, 
+            wordCount: metrics.wordCount,
+            contentType: contentType.type,
+            confidence: contentType.confidence,
+            metrics: metrics
+          });
           break;
 
         case 'test':
