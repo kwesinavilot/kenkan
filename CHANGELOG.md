@@ -5,6 +5,36 @@ All notable changes to Kenkan will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.6.1] - 2025-08-15
+
+### 🏗️ Code Architecture & Maintainability Improvements
+
+#### Component-Based Architecture Refactoring
+- **REFACTORED**: Broke down monolithic 700+ line popup into 9 modular components
+- **NEW**: `Header.tsx` - Clean app header with logo and settings button
+- **NEW**: `ContentDetectionBar.tsx` - Displays detected content information
+- **NEW**: `VoiceSelector.tsx` - Complete voice selection dropdown with premium indicators
+- **NEW**: `ProgressSection.tsx` - Progress display with integrated waveform animation
+- **NEW**: `MainControls.tsx` - Primary playback controls (play/pause/stop/skip)
+- **NEW**: `SecondaryControls.tsx` - Conditional volume and speed controls
+- **NEW**: `QuickStats.tsx` - Reading time and document statistics display
+- **NEW**: `Footer.tsx` - Simple version footer component
+- **NEW**: `Switch.tsx` - Reusable toggle switch component
+
+#### Type Safety & Code Organization
+- **NEW**: `src/types/popup.ts` - Centralized TypeScript interfaces for all popup components
+- **IMPROVED**: Consistent prop interfaces across all components
+- **ENHANCED**: Better separation of concerns - business logic in main file, UI in components
+- **OPTIMIZED**: 65% reduction in main popup file size (700+ → 200 lines)
+
+#### Developer Experience Improvements
+- **ENHANCED**: Each component has single responsibility and clear boundaries
+- **IMPROVED**: Components are now reusable and easily testable
+- **BETTER**: Cleaner import structure and dependency management
+- **MAINTAINABLE**: Easier to modify individual UI sections without affecting others
+
+---
+
 ## [2.5.0] - 2025-08-15
 
 ### 🎨 Interface Cleanup & Modern Controls

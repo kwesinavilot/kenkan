@@ -119,7 +119,7 @@ Kenkan is a powerful Chrome extension that converts web content into high-qualit
 
 ## 📈 Development Status
 
-### ✅ **Completed Features (v2.6.0)**
+### ✅ **Completed Features (v2.6.1)**
 - **Complete UI/UX System** - Fully draggable floating controls with enhanced hover interactions
 - **Full Playback Control** - Play, pause, stop, resume, and speed cycling
 - **Smart Popup Interface** - Current reading tab display with navigation

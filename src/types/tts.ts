@@ -26,6 +26,7 @@ export interface TTSVoice {
   lang: string;
   localService: boolean;
   default: boolean;
+  provider?: 'system' | 'gemini' | 'openai' | 'elevenlabs';
 }
 
 export interface TTSEvent {
@@ -42,8 +43,18 @@ export interface TTSManagerOptions {
   defaultPitch?: number;
   defaultVolume?: number;
   enableAIEnhancement?: boolean;
+  enableLLMTTS?: boolean;
+  defaultProvider?: 'gemini' | 'openai' | 'elevenlabs';
   retryAttempts?: number;
   retryDelay?: number;
+}
+
+export interface LLMTTSProviderConfig {
+  provider: 'gemini' | 'openai' | 'elevenlabs';
+  apiKey: string;
+  model?: string;
+  voice?: string;
+  enabled: boolean;
 }
 
 export interface AIEnhancementOptions {
