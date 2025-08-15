@@ -49,7 +49,7 @@ interface AppSettings {
   showVolumeOnMain: boolean;
   showSpeedOnMain: boolean;
   highlightFollowing: boolean;
-  showFloatingButton: boolean;
+  floatingButtonBehavior: 'always' | 'never';
   showFloatingOverlay: boolean;
 }
 
@@ -91,7 +91,7 @@ function Popup() {
     showVolumeOnMain: true,
     showSpeedOnMain: true,
     highlightFollowing: true,
-    showFloatingButton: true,
+    floatingButtonBehavior: 'always',  // Always show by default
     showFloatingOverlay: false  // Disabled by default since it's redundant
   });
 
@@ -138,6 +138,18 @@ function Popup() {
       const updatedSettings = { ...appSettings, ...newSettings };
       setAppSettings(updatedSettings);
       localStorage.setItem('kenkan-settings', JSON.stringify(updatedSettings));
+
+      // If floating button setting changed, notify content script
+      if ('floatingButtonBehavior' in newSettings) {
+        chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+          if (tabs[0]?.id) {
+            chrome.tabs.sendMessage(tabs[0].id, {
+              action: 'toggleFloatingButton',
+              data: { show: newSettings.floatingButtonBehavior === 'always' }
+            });
+          }
+        });
+      }
     } catch (error) {
       console.error('Error saving settings:', error);
     }
@@ -223,11 +235,56 @@ function Popup() {
   };
 
   const handlePlay = async () => {
-    // If paused, resume; otherwise start fresh
-    const action = playbackState.isPaused ? 'resumeReading' : 'startReading';
-    const response = await sendMessage({ action });
-    if (response.success) {
-      setPlaybackState(prev => ({ ...prev, isPlaying: true, isPaused: false }));
+    try {
+      // If paused, just resume
+      if (playbackState.isPaused) {
+        const response = await sendMessage({ action: 'resumeReading' });
+        if (response.success) {
+          setPlaybackState(prev => ({ ...prev, isPlaying: true, isPaused: false }));
+        }
+        return;
+      }
+
+      // For new reading, first ensure content is extracted from current tab
+      chrome.tabs.query({ active: true, currentWindow: true }, async (tabs) => {
+        if (!tabs[0]?.id) {
+          alert('No active tab found. Please try again.');
+          return;
+        }
+
+        try {
+          // First, ask content script to extract and send content to background
+          chrome.tabs.sendMessage(tabs[0].id, { action: 'refreshContent' }, async (contentResponse) => {
+            if (chrome.runtime.lastError) {
+              console.error('Content script not available:', chrome.runtime.lastError);
+              alert('Content script not loaded. Please refresh the page and try again.');
+              return;
+            }
+
+            if (contentResponse && contentResponse.success) {
+              // Content extracted successfully, give background script a moment to process it
+              setTimeout(async () => {
+                const response = await sendMessage({ action: 'startReading' });
+                if (response.success) {
+                  setPlaybackState(prev => ({ ...prev, isPlaying: true, isPaused: false }));
+                } else {
+                  console.error('Failed to start reading:', response.error);
+                  alert('Failed to start reading. The page might not have readable content.');
+                }
+              }, 100); // Small delay to ensure content is processed
+            } else {
+              console.error('Failed to extract content:', contentResponse);
+              alert('No readable content found on this page. Please navigate to a page with text content and try again.');
+            }
+          });
+        } catch (error) {
+          console.error('Error communicating with content script:', error);
+          alert('Error communicating with content script. Please refresh the page and try again.');
+        }
+      });
+    } catch (error) {
+      console.error('Error starting playback:', error);
+      alert('Error starting playback. Please try again.');
     }
   };
 
@@ -647,13 +704,17 @@ function Popup() {
 
             <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
               <div>
-                <div className="font-medium text-gray-900">Show floating button</div>
-                <div className="text-gray-600">Display floating TTS button on web pages</div>
+                <div className="font-medium text-gray-900">Floating button behavior</div>
+                <div className="text-gray-600">Control when to show the floating TTS button</div>
               </div>
-              <Switch
-                checked={appSettings.showFloatingButton}
-                onChange={(checked) => saveSettings({ showFloatingButton: checked })}
-              />
+              <select
+                value={appSettings.floatingButtonBehavior}
+                onChange={(e) => saveSettings({ floatingButtonBehavior: e.target.value as 'always' | 'never' })}
+                className="px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              >
+                <option value="always">Always show</option>
+                <option value="never">Don't show</option>
+              </select>
             </div>
 
             <div className="space-y-4">
@@ -714,6 +775,34 @@ function Popup() {
             </div>
           </div>
 
+          {/* Keyboard Shortcuts */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold text-gray-900">Keyboard Shortcuts</h3>
+
+            <div className="bg-gray-50 rounded-xl p-4 space-y-3">
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-gray-700">Play/Pause</span>
+                <kbd className="px-2 py-1 bg-white border border-gray-300 rounded text-xs font-mono">Ctrl/Cmd + Space</kbd>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-gray-700">Stop Reading</span>
+                <kbd className="px-2 py-1 bg-white border border-gray-300 rounded text-xs font-mono">Ctrl/Cmd + S</kbd>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-gray-700">Start Reading</span>
+                <kbd className="px-2 py-1 bg-white border border-gray-300 rounded text-xs font-mono">Ctrl/Cmd + R</kbd>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-gray-700">Speed Up</span>
+                <kbd className="px-2 py-1 bg-white border border-gray-300 rounded text-xs font-mono">Ctrl/Cmd + ↑</kbd>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-gray-700">Speed Down</span>
+                <kbd className="px-2 py-1 bg-white border border-gray-300 rounded text-xs font-mono">Ctrl/Cmd + ↓</kbd>
+              </div>
+            </div>
+          </div>
+
           {/* Tab Management */}
           <div className="space-y-4">
             <h3 className="text-lg font-semibold text-gray-900">Tab Management</h3>
@@ -742,7 +831,7 @@ function Popup() {
             <h3 className="text-lg font-semibold text-gray-900">About</h3>
             <div className="p-4 bg-gray-50 rounded-xl">
               <div className="text-center space-y-2">
-                <div className="font-semibold text-gray-900">Kenkan v2.5.0</div>
+                <div className="font-semibold text-gray-900">Kenkan v2.6.0</div>
                 <div className="text-sm text-gray-600">AI-Powered Text-to-Speech</div>
                 <div className="text-xs text-gray-500">Making web content accessible</div>
               </div>
@@ -780,7 +869,7 @@ function Popup() {
       {/* Footer */}
       <div className="bg-gray-100 px-6 py-3">
         <div className="text-center text-xs text-gray-400 font-medium">
-          v2.5.0
+          v2.6.0
         </div>
       </div>
     </div>

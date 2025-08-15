@@ -10,11 +10,12 @@ console.log('Kenkan Chrome Extension content script loaded');
 
 class KenkanContentScript {
   private isActive = false;
+  private isPaused = false;
   private currentContent: TextContent | null = null;
   private highlighter = getGlobalHighlighter();
   private overlayContainer: HTMLDivElement | null = null;
   private isDarkMode = false;
-  private buttonPosition = { bottom: 25, right: 25 };
+  private buttonPosition = { bottom: 25, right: 25 }; // Will be updated to top right in loadButtonPosition
   private isDragging = false;
 
   constructor() {
@@ -155,12 +156,30 @@ class KenkanContentScript {
     // Load saved button position
     await this.loadButtonPosition();
 
-    this.createFloatingButton();
+    // Check if floating button should be shown
+    const showFloatingButton = await this.getShowFloatingButtonSetting();
+    if (showFloatingButton) {
+      this.createFloatingButton();
+    }
 
     // Debounce content extraction to avoid excessive processing
     setTimeout(() => {
       this.detectAndExtractContent();
     }, 1000);
+  }
+
+  private async getShowFloatingButtonSetting(): Promise<boolean> {
+    try {
+      const settings = localStorage.getItem('kenkan-settings');
+      if (settings) {
+        const parsedSettings = JSON.parse(settings);
+        return parsedSettings.floatingButtonBehavior !== 'never'; // Default to 'always'
+      }
+      return true; // Default to showing the button
+    } catch (error) {
+      console.error('Error getting floating button setting:', error);
+      return true; // Default to showing the button
+    }
   }
 
   private createFloatingButton(): void {
@@ -174,9 +193,10 @@ class KenkanContentScript {
       z-index: 10000;
       display: flex;
       flex-direction: column;
-      align-items: flex-end;
-      gap: 8px;
+      align-items: center;
       cursor: move;
+      width: 56px;
+      min-height: 200px;
     `;
 
     // Main floating button
@@ -200,60 +220,26 @@ class KenkanContentScript {
       justify-content: center;
     `;
 
-    // Controls panel
+    // Vertical controls panel - icon buttons aligned vertically
     const controls = document.createElement('div');
     controls.id = 'kenkan-controls';
-    this.applyTheme(controls);
-
-    // Progress bar
-    const progressContainer = document.createElement('div');
-    progressContainer.style.cssText = `
-      margin-bottom: 8px;
-      padding: 4px 0;
+    controls.style.cssText = `
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-bottom: 12px;
+      opacity: 0;
+      transform: translateY(20px);
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      pointer-events: none;
     `;
 
-    const progressLabel = document.createElement('div');
-    progressLabel.id = 'kenkan-progress-label';
-    progressLabel.style.cssText = `
-      font-size: 10px;
-      color: #6b7280;
-      margin-bottom: 4px;
-      text-align: center;
-    `;
-    progressLabel.textContent = 'Ready to read';
+    // Create vertical icon buttons (smaller than main button)
+    const playPauseBtn = this.createIconButton(this.getPlayPauseIcon(), 'Play/Pause', () => this.togglePlayPause());
+    const stopBtn = this.createIconButton(this.getStopIcon(), 'Stop', () => this.stopReading());
+    const speedBtn = this.createSpeedButton('Speed: 1.0x', () => this.cycleSpeed());
+    const helpBtn = this.createIconButton(this.getHelpIcon(), 'Shortcuts', () => this.showKeyboardHelp());
 
-    const progressBar = document.createElement('div');
-    progressBar.style.cssText = `
-      width: 100%;
-      height: 4px;
-      background: #e5e7eb;
-      border-radius: 2px;
-      overflow: hidden;
-    `;
-
-    const progressFill = document.createElement('div');
-    progressFill.id = 'kenkan-progress-fill';
-    progressFill.style.cssText = `
-      width: 0%;
-      height: 100%;
-      background: linear-gradient(90deg, #3b82f6, #1d4ed8);
-      border-radius: 2px;
-      transition: width 0.3s ease;
-    `;
-
-    progressBar.appendChild(progressFill);
-    progressContainer.appendChild(progressLabel);
-    progressContainer.appendChild(progressBar);
-
-    // Control buttons
-    const playPauseBtn = this.createControlButton('⏯️', 'Play/Pause', () => this.togglePlayPause());
-    const stopBtn = this.createControlButton('⏹️', 'Stop', () => this.stopReading());
-    const speedBtn = this.createControlButton('⚡', 'Speed: 1.0x', () => this.cycleSpeed());
-
-    // Keyboard shortcuts help
-    const helpBtn = this.createControlButton('⌨️', 'Shortcuts', () => this.showKeyboardHelp());
-
-    controls.appendChild(progressContainer);
     controls.appendChild(playPauseBtn);
     controls.appendChild(stopBtn);
     controls.appendChild(speedBtn);
@@ -268,7 +254,7 @@ class KenkanContentScript {
     const showControls = () => {
       window.clearTimeout(hoverTimeout);
       controls.style.opacity = '1';
-      controls.style.transform = 'translateY(0) scale(1)';
+      controls.style.transform = 'translateY(0)';
       controls.style.pointerEvents = 'auto';
       button.style.background = '#2563eb';
       button.style.transform = 'scale(1.05)';
@@ -278,13 +264,25 @@ class KenkanContentScript {
     const hideControls = () => {
       hoverTimeout = window.setTimeout(() => {
         controls.style.opacity = '0';
-        controls.style.transform = 'translateY(20px) scale(0.8)';
+        controls.style.transform = 'translateY(20px)';
         controls.style.pointerEvents = 'none';
         button.style.background = this.isActive ? '#10b981' : '#3b82f6';
         button.style.transform = 'scale(1)';
         button.style.boxShadow = '0 4px 12px rgba(59, 130, 246, 0.4)';
-      }, 300);
+      }, 200);
     };
+
+    // Create hover area that includes the vertical space for controls
+    const hoverArea = document.createElement('div');
+    hoverArea.style.cssText = `
+      position: absolute;
+      top: -200px;
+      left: -10px;
+      right: -10px;
+      bottom: -10px;
+      z-index: -1;
+    `;
+    container.appendChild(hoverArea);
 
     container.addEventListener('mouseenter', showControls);
     container.addEventListener('mouseleave', hideControls);
@@ -370,9 +368,20 @@ class KenkanContentScript {
       const response = await this.sendMessage({ action: 'getButtonPosition' });
       if (response.success && response.data) {
         this.buttonPosition = response.data;
+      } else {
+        // Default to top right corner for new installations
+        this.buttonPosition = {
+          bottom: window.innerHeight - 100,
+          right: 25
+        };
       }
     } catch (error) {
       console.error('Error loading button position:', error);
+      // Default to top right corner on error
+      this.buttonPosition = {
+        bottom: window.innerHeight - 100,
+        right: 25
+      };
     }
   }
 
@@ -392,37 +401,112 @@ Ctrl/Cmd + ↓: Speed Down
     alert(helpText.trim());
   }
 
-  private createControlButton(icon: string, title: string, onClick: () => void): HTMLButtonElement {
+  private createIconButton(iconSvg: string, title: string, onClick: () => void): HTMLButtonElement {
     const btn = document.createElement('button');
-    btn.innerHTML = `<span style="margin-right: 8px;">${icon}</span><span style="font-size: 12px;">${title}</span>`;
+    btn.innerHTML = iconSvg;
     btn.title = title;
     btn.style.cssText = `
-      border-radius: 6px;
-      padding: 8px 12px;
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      border: none;
+      background: #3b82f6;
+      color: white;
       cursor: pointer;
-      transition: all 0.2s ease;
       display: flex;
       align-items: center;
-      font-size: 12px;
-      width: 100%;
-      border: 1px solid;
+      justify-content: center;
+      box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      pointer-events: auto;
     `;
 
+    // Ensure SVG icons are properly sized
+    const svg = btn.querySelector('svg');
+    if (svg) {
+      svg.style.width = '20px';
+      svg.style.height = '20px';
+    }
+
     btn.addEventListener('mouseenter', () => {
-      btn.style.background = btn.dataset.hoverBg || '#3b82f6';
-      btn.style.color = 'white';
-      btn.style.transform = 'translateX(-2px)';
+      btn.style.background = '#2563eb';
+      btn.style.transform = 'scale(1.05)';
+      btn.style.boxShadow = '0 4px 12px rgba(59, 130, 246, 0.4)';
     });
 
     btn.addEventListener('mouseleave', () => {
-      btn.style.background = btn.dataset.normalBg || '#f8fafc';
-      btn.style.color = btn.dataset.normalColor || '#374151';
-      btn.style.transform = 'translateX(0)';
+      btn.style.background = '#3b82f6';
+      btn.style.transform = 'scale(1)';
+      btn.style.boxShadow = '0 2px 8px rgba(59, 130, 246, 0.3)';
     });
 
     btn.addEventListener('click', onClick);
     return btn;
   }
+
+  private createSpeedButton(title: string, onClick: () => void): HTMLButtonElement {
+    const btn = document.createElement('button');
+    btn.innerHTML = `<span style="font-size: 12px; font-weight: 600;">${this.currentSpeed.toFixed(1)}x</span>`;
+    btn.title = title;
+    btn.id = 'kenkan-speed-btn';
+    btn.style.cssText = `
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      border: none;
+      background: #10b981;
+      color: white;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      pointer-events: auto;
+    `;
+
+    btn.addEventListener('mouseenter', () => {
+      btn.style.background = '#059669';
+      btn.style.transform = 'scale(1.05)';
+      btn.style.boxShadow = '0 4px 12px rgba(16, 185, 129, 0.4)';
+    });
+
+    btn.addEventListener('mouseleave', () => {
+      btn.style.background = '#10b981';
+      btn.style.transform = 'scale(1)';
+      btn.style.boxShadow = '0 2px 8px rgba(16, 185, 129, 0.3)';
+    });
+
+    btn.addEventListener('click', onClick);
+    return btn;
+  }
+
+  // Lucide icon methods - Using official Lucide SVG paths
+  private getLucideIcon(iconName: string): string {
+    const icons = {
+      play: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5,3 19,12 5,21"/></svg>`,
+      pause: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>`,
+      square: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/></svg>`,
+      helpCircle: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg>`
+    };
+    return icons[iconName as keyof typeof icons] || '';
+  }
+
+  private getPlayPauseIcon(): string {
+    // Show pause icon when actively playing, play icon when stopped or paused
+    const isCurrentlyPlaying = this.isActive && !this.isPaused;
+    return this.getLucideIcon(isCurrentlyPlaying ? 'pause' : 'play');
+  }
+
+  private getStopIcon(): string {
+    return this.getLucideIcon('square');
+  }
+
+  private getHelpIcon(): string {
+    return this.getLucideIcon('helpCircle');
+  }
+
+
 
   private async detectAndExtractContent(): Promise<void> {
     try {
@@ -552,8 +636,10 @@ Ctrl/Cmd + ↓: Speed Down
         const response = await this.sendMessage({ action: 'startReading' });
         if (response.success) {
           this.isActive = true;
+          this.isPaused = false;
           // this.showOverlay(); // Commented out - redundant with main floating button
           this.updateButtonState();
+          this.updatePlayPauseButton();
         } else {
           alert(`Failed to start reading: ${response.error || 'Unknown error'}`);
         }
@@ -568,84 +654,84 @@ Ctrl/Cmd + ↓: Speed Down
     }
   }
 
-  private showOverlay(): void {
-    if (this.overlayContainer) return;
+  // private showOverlay(): void {
+  //   if (this.overlayContainer) return;
 
-    // Create overlay container
-    this.overlayContainer = document.createElement('div');
-    this.overlayContainer.className = 'kenkan-overlay';
-    this.overlayContainer.style.cssText = `
-      position: fixed;
-      top: 80px;
-      right: 20px;
-      z-index: 9999;
-      pointer-events: auto;
-    `;
+  //   // Create overlay container
+  //   this.overlayContainer = document.createElement('div');
+  //   this.overlayContainer.className = 'kenkan-overlay';
+  //   this.overlayContainer.style.cssText = `
+  //     position: fixed;
+  //     top: 80px;
+  //     right: 20px;
+  //     z-index: 9999;
+  //     pointer-events: auto;
+  //   `;
 
-    // Create a simple overlay (in a real implementation, this would be React)
-    this.overlayContainer.innerHTML = `
-      <div style="
-        background: white;
-        border: 2px solid #3b82f6;
-        border-radius: 12px;
-        padding: 16px;
-        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
-        min-width: 280px;
-        backdrop-filter: blur(10px);
-      ">
-        <div style="display: flex; align-items: center; justify-content: between; margin-bottom: 12px;">
-          <span style="font-weight: 600; color: #1f2937;">🎧 Kenkan TTS</span>
-          <button id="kenkan-close" style="
-            background: none;
-            border: none;
-            font-size: 18px;
-            cursor: pointer;
-            color: #6b7280;
-            margin-left: auto;
-          ">×</button>
-        </div>
-        
-        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
-          <button id="kenkan-play-pause" style="
-            background: #3b82f6;
-            color: white;
-            border: none;
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-          ">⏸️</button>
-          
-          <button id="kenkan-stop" style="
-            background: #ef4444;
-            color: white;
-            border: none;
-            border-radius: 6px;
-            padding: 8px 12px;
-            cursor: pointer;
-          ">⏹️ Stop</button>
-        </div>
-        
-        <div style="font-size: 12px; color: #6b7280; text-align: center;">
-          Reading page content...
-        </div>
-      </div>
-    `;
+  //   // Create a simple overlay (in a real implementation, this would be React)
+  //   this.overlayContainer.innerHTML = `
+  //     <div style="
+  //       background: white;
+  //       border: 2px solid #3b82f6;
+  //       border-radius: 12px;
+  //       padding: 16px;
+  //       box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  //       min-width: 280px;
+  //       backdrop-filter: blur(10px);
+  //     ">
+  //       <div style="display: flex; align-items: center; justify-content: between; margin-bottom: 12px;">
+  //         <span style="font-weight: 600; color: #1f2937;">🎧 Kenkan TTS</span>
+  //         <button id="kenkan-close" style="
+  //           background: none;
+  //           border: none;
+  //           font-size: 18px;
+  //           cursor: pointer;
+  //           color: #6b7280;
+  //           margin-left: auto;
+  //         ">×</button>
+  //       </div>
 
-    // Add event listeners
-    const closeBtn = this.overlayContainer.querySelector('#kenkan-close');
-    const playPauseBtn = this.overlayContainer.querySelector('#kenkan-play-pause');
-    const stopBtn = this.overlayContainer.querySelector('#kenkan-stop');
+  //       <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+  //         <button id="kenkan-play-pause" style="
+  //           background: #3b82f6;
+  //           color: white;
+  //           border: none;
+  //           border-radius: 50%;
+  //           width: 40px;
+  //           height: 40px;
+  //           cursor: pointer;
+  //           display: flex;
+  //           align-items: center;
+  //           justify-content: center;
+  //         ">⏸️</button>
 
-    closeBtn?.addEventListener('click', () => this.hideOverlay());
-    playPauseBtn?.addEventListener('click', () => this.togglePlayPause());
-    stopBtn?.addEventListener('click', () => this.stopReading());
+  //         <button id="kenkan-stop" style="
+  //           background: #ef4444;
+  //           color: white;
+  //           border: none;
+  //           border-radius: 6px;
+  //           padding: 8px 12px;
+  //           cursor: pointer;
+  //         ">⏹️ Stop</button>
+  //       </div>
 
-    document.body.appendChild(this.overlayContainer);
-  }
+  //       <div style="font-size: 12px; color: #6b7280; text-align: center;">
+  //         Reading page content...
+  //       </div>
+  //     </div>
+  //   `;
+
+  //   // Add event listeners
+  //   const closeBtn = this.overlayContainer.querySelector('#kenkan-close');
+  //   const playPauseBtn = this.overlayContainer.querySelector('#kenkan-play-pause');
+  //   const stopBtn = this.overlayContainer.querySelector('#kenkan-stop');
+
+  //   closeBtn?.addEventListener('click', () => this.hideOverlay());
+  //   playPauseBtn?.addEventListener('click', () => this.togglePlayPause());
+  //   stopBtn?.addEventListener('click', () => this.stopReading());
+
+  //   document.body.appendChild(this.overlayContainer);
+  // }
 
   private hideOverlay(): void {
     if (this.overlayContainer) {
@@ -672,9 +758,11 @@ Ctrl/Cmd + ↓: Speed Down
     try {
       await this.sendMessage({ action: 'stopReading' });
       this.isActive = false;
+      this.isPaused = false;
       this.highlighter.clearHighlight();
       // this.hideOverlay(); // Commented out - overlay disabled by default
       this.updateButtonState();
+      this.updatePlayPauseButton();
     } catch (error) {
       console.error('Error stopping reading:', error);
     }
@@ -686,16 +774,31 @@ Ctrl/Cmd + ↓: Speed Down
 
       if (state.data?.isPlaying) {
         await this.sendMessage({ action: 'pauseReading' });
+        this.isPaused = true;
       } else {
         if (this.isActive) {
           await this.sendMessage({ action: 'resumeReading' });
+          this.isPaused = false;
         } else {
           await this.toggleTTS();
         }
       }
       this.updateButtonState();
+      this.updatePlayPauseButton();
     } catch (error) {
       console.error('Error toggling play/pause:', error);
+    }
+  }
+
+  private updatePlayPauseButton(): void {
+    const playPauseBtn = document.querySelector('#kenkan-controls button:first-child') as HTMLButtonElement;
+    if (playPauseBtn) {
+      playPauseBtn.innerHTML = this.getPlayPauseIcon();
+      const svg = playPauseBtn.querySelector('svg');
+      if (svg) {
+        svg.style.width = '20px';
+        svg.style.height = '20px';
+      }
     }
   }
 
@@ -710,10 +813,11 @@ Ctrl/Cmd + ↓: Speed Down
 
       await this.sendMessage({ action: 'setSpeed', data: { speed: this.currentSpeed } });
 
-      // Update speed button text
-      const speedBtn = document.querySelector('#kenkan-controls button:nth-child(3)') as HTMLButtonElement;
+      // Update speed button display
+      const speedBtn = document.getElementById('kenkan-speed-btn') as HTMLButtonElement;
       if (speedBtn) {
-        speedBtn.innerHTML = `<span style="margin-right: 8px;">⚡</span><span style="font-size: 12px;">Speed: ${this.currentSpeed}x</span>`;
+        speedBtn.innerHTML = `<span style="font-size: 12px; font-weight: 600;">${this.currentSpeed.toFixed(1)}x</span>`;
+        speedBtn.title = `Speed: ${this.currentSpeed.toFixed(1)}x`;
       }
     } catch (error) {
       console.error('Error changing speed:', error);
@@ -848,13 +952,24 @@ Ctrl/Cmd + ↓: Speed Down
         case 'getWordCount':
           const contentType = detectContentType();
           const metrics = getContentMetrics();
-          sendResponse({ 
-            success: true, 
+          sendResponse({
+            success: true,
             wordCount: metrics.wordCount,
             contentType: contentType.type,
             confidence: contentType.confidence,
             metrics: metrics
           });
+          break;
+
+        case 'toggleFloatingButton':
+          const shouldShow = message.data?.show;
+          const container = document.getElementById('kenkan-floating-container');
+          if (shouldShow && !container) {
+            this.createFloatingButton();
+          } else if (!shouldShow && container) {
+            container.remove();
+          }
+          sendResponse({ success: true });
           break;
 
         case 'test':
