@@ -2,7 +2,7 @@
 
 > Transform any web content into natural, AI-enhanced speech with advanced text-to-speech capabilities.
 
-[![Version](https://img.shields.io/badge/version-2.0.0-blue.svg)](https://github.com/your-repo/kenkan)
+[![Version](https://img.shields.io/badge/version-2.5.0-blue.svg)](https://github.com/your-repo/kenkan)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.8-blue.svg)](https://www.typescriptlang.org/)
 [![React](https://img.shields.io/badge/React-19.1-blue.svg)](https://reactjs.org/)
@@ -119,7 +119,7 @@ Kenkan is a powerful Chrome extension that converts web content into high-qualit
 
 ## 📈 Development Status
 
-### ✅ **Completed Features (v2.0.0)**
+### ✅ **Completed Features (v2.5.0)**
 - **Complete UI/UX System** - Fully draggable floating controls with enhanced hover interactions
 - **Full Playback Control** - Play, pause, stop, resume, and speed cycling
 - **Smart Popup Interface** - Current reading tab display with navigation

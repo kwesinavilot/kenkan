@@ -11,7 +11,8 @@ import {
   SkipForward,
   SkipBack,
   Star,
-  ChevronDown
+  ChevronDown,
+  CircleGauge
 } from 'lucide-react';
 
 import './popup.css';
@@ -43,6 +44,15 @@ interface ContentInfo {
   pageTitle: string;
 }
 
+interface AppSettings {
+  showWaveform: boolean;
+  showVolumeOnMain: boolean;
+  showSpeedOnMain: boolean;
+  highlightFollowing: boolean;
+  showFloatingButton: boolean;
+  showFloatingOverlay: boolean;
+}
+
 
 
 function Popup() {
@@ -56,6 +66,7 @@ function Popup() {
     volume: 0.8,
     pitch: 1.0
   });
+
 
   const [showSettings, setShowSettings] = useState(false);
   const [showVoiceSelector, setShowVoiceSelector] = useState(false);
@@ -75,6 +86,15 @@ function Popup() {
     contentTabs: 8      // Tabs with readable content detected
   });
 
+  const [appSettings, setAppSettings] = useState<AppSettings>({
+    showWaveform: true,
+    showVolumeOnMain: true,
+    showSpeedOnMain: true,
+    highlightFollowing: true,
+    showFloatingButton: true,
+    showFloatingOverlay: false  // Disabled by default since it's redundant
+  });
+
   const voices: Voice[] = [
     { name: 'Kwame', desc: 'Expressive Storyteller', accent: 'West African', lang: 'EN', premium: false },
     { name: 'Sandra', desc: 'Warm & Friendly', accent: 'West African', lang: 'EN', premium: false },
@@ -83,6 +103,7 @@ function Popup() {
   ];
 
   useEffect(() => {
+    loadSettings();
     loadInitialData();
     getCurrentPageWordCount();
     enforceTabLimit();
@@ -93,6 +114,48 @@ function Popup() {
     }, 5000);
     return () => clearInterval(interval);
   }, []);
+
+  const loadSettings = () => {
+    try {
+      const savedSettings = localStorage.getItem('kenkan-settings');
+      if (savedSettings) {
+        const settings = JSON.parse(savedSettings);
+        setAppSettings(prev => ({ ...prev, ...settings }));
+      }
+
+      const savedPlaybackState = localStorage.getItem('kenkan-playback-state');
+      if (savedPlaybackState) {
+        const playback = JSON.parse(savedPlaybackState);
+        setPlaybackState(prev => ({ ...prev, ...playback }));
+      }
+    } catch (error) {
+      console.error('Error loading settings:', error);
+    }
+  };
+
+  const saveSettings = (newSettings: Partial<AppSettings>) => {
+    try {
+      const updatedSettings = { ...appSettings, ...newSettings };
+      setAppSettings(updatedSettings);
+      localStorage.setItem('kenkan-settings', JSON.stringify(updatedSettings));
+    } catch (error) {
+      console.error('Error saving settings:', error);
+    }
+  };
+
+  const savePlaybackState = (newState: Partial<PlaybackState>) => {
+    try {
+      const updatedState = { ...playbackState, ...newState };
+      localStorage.setItem('kenkan-playback-state', JSON.stringify({
+        voice: updatedState.voice,
+        speed: updatedState.speed,
+        volume: updatedState.volume,
+        pitch: updatedState.pitch
+      }));
+    } catch (error) {
+      console.error('Error saving playback state:', error);
+    }
+  };
 
   const loadInitialData = async () => {
     try {
@@ -189,16 +252,28 @@ function Popup() {
   };
 
   const handleVoiceChange = (voiceName: string) => {
-    setPlaybackState(prev => ({ ...prev, voice: voiceName }));
+    const newState = { voice: voiceName };
+    setPlaybackState(prev => ({ ...prev, ...newState }));
+    savePlaybackState(newState);
     setShowVoiceSelector(false);
   };
 
-  const handleSpeedChange = (speed: number) => {
-    setPlaybackState(prev => ({ ...prev, speed }));
+  const handleSpeedChange = async (speed: number) => {
+    const response = await sendMessage({ action: 'setSpeed', data: { speed } });
+    if (response.success) {
+      const newState = { speed };
+      setPlaybackState(prev => ({ ...prev, ...newState }));
+      savePlaybackState(newState);
+    }
   };
 
-  const handleVolumeChange = (volume: number) => {
-    setPlaybackState(prev => ({ ...prev, volume }));
+  const handleVolumeChange = async (volume: number) => {
+    const response = await sendMessage({ action: 'setVolume', data: { volume } });
+    if (response.success) {
+      const newState = { volume };
+      setPlaybackState(prev => ({ ...prev, ...newState }));
+      savePlaybackState(newState);
+    }
   };
 
   const currentVoice = voices.find(v => v.name === playbackState.voice) || voices[0];
@@ -212,27 +287,66 @@ function Popup() {
     return title.substring(0, maxLength).trim() + '...';
   };
 
-  const WaveformAnimation = () => (
-    <div className="flex items-center justify-center space-x-1.5 h-12 w-full px-4">
-      {Array.from({ length: 20 }).map((_, i) => (
-        <div
-          key={i}
-          className={`flex-1 bg-blue-500 rounded-full transition-all duration-1000 ${playbackState.isPlaying ? 'animate-pulse' : ''
-            }`}
-          style={{
-            height: playbackState.isPlaying
-              ? `${Math.random() * 32 + 12}px`
-              : '12px',
-            animationDelay: `${i * 50}ms`,
-            maxWidth: '4px'
-          }}
-        />
-      ))}
-    </div>
+  const Switch = ({ checked, onChange, disabled = false }: { checked: boolean; onChange: (checked: boolean) => void; disabled?: boolean }) => (
+    <button
+      type="button"
+      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${checked ? 'bg-blue-600' : 'bg-gray-200'
+        } ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+      onClick={() => !disabled && onChange(!checked)}
+      disabled={disabled}
+    >
+      <span
+        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${checked ? 'translate-x-6' : 'translate-x-1'
+          }`}
+      />
+    </button>
   );
 
+  const WaveformAnimation = () => {
+    const [waveformHeights, setWaveformHeights] = useState<number[]>(
+      Array.from({ length: 20 }, () => 12)
+    );
+
+    useEffect(() => {
+      let interval: number;
+
+      if (playbackState.isPlaying) {
+        // Fast animation when playing
+        interval = setInterval(() => {
+          setWaveformHeights(Array.from({ length: 20 }, () => Math.random() * 40 + 12));
+        }, 200); // Much faster - 200ms
+      } else if (playbackState.isPaused) {
+        // Slow pulse when paused - keep last heights but pulse
+        // Don't change heights, just let CSS pulse animation handle it
+      } else {
+        // Uniform when stopped
+        setWaveformHeights(Array.from({ length: 20 }, () => 12));
+      }
+
+      return () => {
+        if (interval) clearInterval(interval);
+      };
+    }, [playbackState.isPlaying, playbackState.isPaused]);
+
+    return (
+      <div className="flex items-center justify-center space-x-1.5 h-12 w-full px-4">
+        {waveformHeights.map((height, i) => (
+          <div
+            key={i}
+            className={`flex-1 bg-blue-500 rounded-full transition-all duration-150 ${playbackState.isPaused ? 'animate-pulse' : ''
+              }`}
+            style={{
+              height: `${height}px`,
+              maxWidth: '4px'
+            }}
+          />
+        ))}
+      </div>
+    );
+  };
+
   return (
-    <div className="w-[400px] bg-white rounded-2xl shadow-2xl overflow-hidden font-sans relative">
+    <div className="w-[400px] bg-white shadow-2xl overflow-hidden font-sans relative">
       {/* Header Section */}
       <div className="bg-gradient-to-r from-blue-600 to-indigo-700 px-6 py-4">
         <div className="flex items-center justify-between">
@@ -326,18 +440,22 @@ function Popup() {
       <div className="px-6 py-6">
         <div className="space-y-4">
           <div className="flex justify-between items-center">
-            <span className="text-sm font-semibold text-gray-700">
-              {playbackState.isPlaying ? 'Now Playing' : playbackState.isPaused ? 'Paused' : 'Ready to Read'}
-            </span>
+            <span className="text-sm font-semibold text-gray-700">Progress</span>
             <span className="text-sm text-gray-600 font-medium">
-              {contentInfo.currentPageWords.toLocaleString()} words
+              <span className="text-blue-600 font-semibold">{Math.round(progress)}%</span>
+              <span className="text-gray-400 mx-1">•</span>
+              <span>
+                {Math.round((progress / 100) * contentInfo.currentPageWords).toLocaleString()}/{contentInfo.currentPageWords.toLocaleString()} words
+              </span>
             </span>
           </div>
 
-          {/* Enhanced Waveform - Always visible */}
-          <div className="bg-gray-50 rounded-xl p-4 border border-gray-100">
-            <WaveformAnimation />
-          </div>
+          {/* Enhanced Waveform - Conditional */}
+          {appSettings.showWaveform && (
+            <div className="bg-gray-50 rounded-xl p-4 border border-gray-100">
+              <WaveformAnimation />
+            </div>
+          )}
         </div>
       </div>
 
@@ -364,7 +482,7 @@ function Popup() {
       */}
 
       {/* Main Controls */}
-      <div className="px-6 py-6">
+      <div className="px-6 pb-4 pt-0">
         <div className="flex items-center justify-center space-x-4">
           <button className="w-12 h-12 bg-gray-100 hover:bg-gray-200 rounded-full flex items-center justify-center transition-all duration-300 shadow-md hover:shadow-lg hover:scale-105">
             <SkipBack className="w-5 h-5 text-gray-600" />
@@ -395,32 +513,60 @@ function Popup() {
       </div>
 
       {/* Secondary Controls */}
-      <div className="px-6 py-4 border-t border-gray-100">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <Volume2 className="w-4 h-4 text-gray-500" />
-            <input
-              type="range"
-              min="0"
-              max="100"
-              value={playbackState.volume * 100}
-              onChange={(e) => handleVolumeChange(parseInt(e.target.value) / 100)}
-              className="w-20 h-1 bg-gray-200 rounded-full appearance-none cursor-pointer slider"
-            />
-            <span className="text-sm text-gray-600 font-medium w-10">{Math.round(playbackState.volume * 100)}%</span>
-          </div>
+      {(appSettings.showVolumeOnMain || appSettings.showSpeedOnMain) && (
+        <div className="px-6 py-4 border-t border-gray-100">
+          <div className="flex items-center justify-center space-x-8">
+            {/* Volume Control */}
+            {appSettings.showVolumeOnMain && (
+              <div className="flex items-center space-x-3">
+                <Volume2 className="w-4 h-4 text-gray-500" />
+                <div className="relative">
+                  <input
+                    type="range"
+                    min="0"
+                    max="100"
+                    value={playbackState.volume * 100}
+                    onChange={(e) => handleVolumeChange(parseInt(e.target.value) / 100)}
+                    className="w-20 h-2 bg-gray-200 rounded-full appearance-none cursor-pointer slider"
+                    style={{
+                      background: `linear-gradient(to right, #3b82f6 0%, #3b82f6 ${playbackState.volume * 100}%, #e5e7eb ${playbackState.volume * 100}%, #e5e7eb 100%)`
+                    }}
+                  />
+                </div>
+                <span className="text-sm text-gray-600 font-medium w-8 text-center">{Math.round(playbackState.volume * 100)}%</span>
+              </div>
+            )}
 
-          <div className="flex items-center space-x-2">
-            {/* Stop button moved to main controls */}
+            {/* Speed Control */}
+            {appSettings.showSpeedOnMain && (
+              <div className="flex items-center space-x-3">
+                <CircleGauge className="w-4 h-4 text-gray-500" />
+                <div className="relative">
+                  <input
+                    type="range"
+                    min="0.5"
+                    max="2.0"
+                    step="0.1"
+                    value={playbackState.speed}
+                    onChange={(e) => handleSpeedChange(parseFloat(e.target.value))}
+                    className="w-20 h-2 bg-gray-200 rounded-full appearance-none cursor-pointer slider"
+                    style={{
+                      background: `linear-gradient(to right, #10b981 0%, #10b981 ${((playbackState.speed - 0.5) / 1.5) * 100}%, #e5e7eb ${((playbackState.speed - 0.5) / 1.5) * 100}%, #e5e7eb 100%)`
+                    }}
+                  />
+                </div>
+                <span className="text-sm text-gray-600 font-medium w-8 text-center">{playbackState.speed.toFixed(1)}x</span>
+              </div>
+            )}
           </div>
         </div>
-      </div>
+      )}
 
       {/* Settings Sliding Panel */}
-      <div className={`absolute inset-0 bg-white transform transition-transform duration-300 ease-in-out z-50 ${showSettings ? 'translate-x-0' : 'translate-x-full'
+      <div className={`absolute inset-0 bg-white transform transition-transform duration-300 ease-in-out z-50 flex flex-col ${showSettings ? 'translate-x-0' : 'translate-x-full'
         }`}>
         {/* Settings Header */}
-        <div className="bg-gradient-to-r from-gray-600 to-gray-700 px-6 py-4">
+        <div className="bg-gradient-to-r from-gray-600 to-gray-700 px-6 py-4 flex-shrink-0">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
               <button
@@ -438,7 +584,7 @@ function Popup() {
         </div>
 
         {/* Settings Content */}
-        <div className="px-6 py-6 space-y-8">
+        <div className="flex-1 overflow-y-auto px-6 py-6 space-y-8" style={{ maxHeight: 'calc(100vh - 80px)' }}>
           {/* Playback Settings */}
           <div className="space-y-4">
             <h3 className="text-lg font-semibold text-gray-900">Playback</h3>
@@ -459,6 +605,9 @@ function Popup() {
                 value={playbackState.speed}
                 onChange={(e) => handleSpeedChange(parseFloat(e.target.value))}
                 className="w-full h-2 bg-gray-200 rounded-full appearance-none cursor-pointer slider"
+                style={{
+                  background: `linear-gradient(to right, #10b981 0%, #10b981 ${((playbackState.speed - 0.5) / 1.5) * 100}%, #e5e7eb ${((playbackState.speed - 0.5) / 1.5) * 100}%, #e5e7eb 100%)`
+                }}
               />
               <div className="flex justify-between text-xs text-gray-500">
                 <span>0.5x</span>
@@ -485,37 +634,82 @@ function Popup() {
                 value={playbackState.volume * 100}
                 onChange={(e) => handleVolumeChange(parseInt(e.target.value) / 100)}
                 className="w-full h-2 bg-gray-200 rounded-full appearance-none cursor-pointer slider"
+                style={{
+                  background: `linear-gradient(to right, #3b82f6 0%, #3b82f6 ${playbackState.volume * 100}%, #e5e7eb ${playbackState.volume * 100}%, #e5e7eb 100%)`
+                }}
               />
             </div>
           </div>
 
-          {/* Reading Preferences */}
+          {/* Interface Settings */}
           <div className="space-y-4">
-            <h3 className="text-lg font-semibold text-gray-900">Reading Preferences</h3>
+            <h3 className="text-lg font-semibold text-gray-900">Interface Settings</h3>
+
+            <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
+              <div>
+                <div className="font-medium text-gray-900">Show floating button</div>
+                <div className="text-gray-600">Display floating TTS button on web pages</div>
+              </div>
+              <Switch
+                checked={appSettings.showFloatingButton}
+                onChange={(checked) => saveSettings({ showFloatingButton: checked })}
+              />
+            </div>
 
             <div className="space-y-4">
               <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
                 <div>
-                  <div className="font-medium text-gray-900">Auto-read new content</div>
-                  <div className="text-sm text-gray-600">Automatically start reading when content is detected</div>
+                  <div className="font-medium text-gray-900">Show waveform visualizer</div>
+                  <div className="text-gray-600">Display animated waveform during playback</div>
                 </div>
-                <input type="checkbox" className="w-5 h-5 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2" />
+                <Switch
+                  checked={appSettings.showWaveform}
+                  onChange={(checked) => saveSettings({ showWaveform: checked })}
+                />
               </div>
+
+              <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
+                <div>
+                  <div className="font-medium text-gray-900">Show volume on main screen</div>
+                  <div className="text-gray-600">Display volume control on popup main screen</div>
+                </div>
+                <Switch
+                  checked={appSettings.showVolumeOnMain}
+                  onChange={(checked) => saveSettings({ showVolumeOnMain: checked })}
+                />
+              </div>
+
+              <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
+                <div>
+                  <div className="font-medium text-gray-900">Show speed on main screen</div>
+                  <div className="text-gray-600">Display speed control on popup main screen</div>
+                </div>
+                <Switch
+                  checked={appSettings.showSpeedOnMain}
+                  onChange={(checked) => saveSettings({ showSpeedOnMain: checked })}
+                />
+              </div>
+
+              {/* <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
+                <div>
+                  <div className="font-medium text-gray-900">Show floating overlay</div>
+                  <div className="text-gray-600">Display additional control overlay during reading</div>
+                </div>
+                <Switch
+                  checked={appSettings.showFloatingOverlay}
+                  onChange={(checked) => saveSettings({ showFloatingOverlay: checked })}
+                />
+              </div> */}
 
               <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
                 <div>
                   <div className="font-medium text-gray-900">Highlight following</div>
-                  <div className="text-sm text-gray-600">Highlight text as it's being read</div>
+                  <div className="text-gray-600">Highlight text as it's being read</div>
                 </div>
-                <input type="checkbox" className="w-5 h-5 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2" />
-              </div>
-
-              <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
-                <div>
-                  <div className="font-medium text-gray-900">Smart pause</div>
-                  <div className="text-sm text-gray-600">Pause when switching tabs or minimizing</div>
-                </div>
-                <input type="checkbox" className="w-5 h-5 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2" />
+                <Switch
+                  checked={appSettings.highlightFollowing}
+                  onChange={(checked) => saveSettings({ highlightFollowing: checked })}
+                />
               </div>
             </div>
           </div>
@@ -548,7 +742,7 @@ function Popup() {
             <h3 className="text-lg font-semibold text-gray-900">About</h3>
             <div className="p-4 bg-gray-50 rounded-xl">
               <div className="text-center space-y-2">
-                <div className="font-semibold text-gray-900">Kenkan v2.0.0</div>
+                <div className="font-semibold text-gray-900">Kenkan v2.5.0</div>
                 <div className="text-sm text-gray-600">AI-Powered Text-to-Speech</div>
                 <div className="text-xs text-gray-500">Making web content accessible</div>
               </div>
@@ -586,7 +780,7 @@ function Popup() {
       {/* Footer */}
       <div className="bg-gray-100 px-6 py-3">
         <div className="text-center text-xs text-gray-400 font-medium">
-          v2.0.0
+          v2.5.0
         </div>
       </div>
     </div>

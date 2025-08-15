@@ -552,7 +552,7 @@ Ctrl/Cmd + ↓: Speed Down
         const response = await this.sendMessage({ action: 'startReading' });
         if (response.success) {
           this.isActive = true;
-          this.showOverlay();
+          // this.showOverlay(); // Commented out - redundant with main floating button
           this.updateButtonState();
         } else {
           alert(`Failed to start reading: ${response.error || 'Unknown error'}`);
@@ -673,7 +673,7 @@ Ctrl/Cmd + ↓: Speed Down
       await this.sendMessage({ action: 'stopReading' });
       this.isActive = false;
       this.highlighter.clearHighlight();
-      this.hideOverlay();
+      // this.hideOverlay(); // Commented out - overlay disabled by default
       this.updateButtonState();
     } catch (error) {
       console.error('Error stopping reading:', error);

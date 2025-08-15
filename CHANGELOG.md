@@ -5,6 +5,103 @@ All notable changes to Kenkan will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.5.0] - 2025-08-15
+
+### 🎨 Interface Cleanup & Modern Controls
+
+#### Modern Switch Controls
+- **NEW**: iOS-style toggle switches for all interface settings
+- **REPLACED**: Basic checkboxes with professional switch components
+- **ENHANCED**: Smooth animations and proper focus states for accessibility
+- **IMPROVED**: Touch-friendly design with larger interaction areas
+
+#### Interface Cleanup
+- **DISABLED**: Redundant floating overlay by default (can be re-enabled in settings)
+- **COMMENTED**: Secondary control overlay to reduce interface clutter
+- **STREAMLINED**: Focus on main floating button and popup interface
+- **SIMPLIFIED**: Removed duplicate control mechanisms
+
+---
+
+## [2.4.0] - 2025-08-15
+
+### ⚙️ Enhanced Interface Settings & Controls
+
+#### New Interface Settings
+- **NEW**: "Show floating button" toggle - Control visibility of main floating TTS button
+- **NEW**: "Show floating overlay" toggle - Control secondary overlay during reading
+- **NEW**: "Show waveform visualizer" toggle - Control animated waveform display
+- **NEW**: "Show volume on main screen" toggle - Control volume slider visibility
+- **NEW**: "Show speed on main screen" toggle - Control speed slider visibility
+
+#### Conditional UI Rendering
+- **ENHANCED**: Volume and speed controls only show when enabled in settings
+- **IMPROVED**: Waveform section conditionally renders based on user preference
+- **OPTIMIZED**: Secondary controls section only renders if at least one control is enabled
+
+---
+
+## [2.3.0] - 2025-08-15
+
+### 💾 Settings Storage & Persistence
+
+#### Local Storage Implementation
+- **NEW**: Complete local storage implementation for all app settings
+- **NEW**: Automatic settings persistence across browser sessions
+- **NEW**: Real-time settings synchronization between popup and content script
+- **IMPROVED**: Settings load on extension startup with proper fallbacks
+
+#### Settings Management
+- **NEW**: `saveSettings()` function for immediate setting persistence
+- **NEW**: `savePlaybackState()` function for voice, speed, volume, pitch persistence
+- **NEW**: `loadSettings()` function with error handling and fallbacks
+- **ENHANCED**: All setting changes immediately saved to localStorage
+
+---
+
+## [2.2.0] - 2025-08-15
+
+### 🎵 Waveform & Control Improvements
+
+#### Enhanced Waveform Animation
+- **OPTIMIZED**: Faster waveform animation (150ms intervals instead of 1000ms)
+- **IMPROVED**: Waveform behavior - uniform when stopped, animated when playing, pulsing when paused
+- **ENHANCED**: 20-bar waveform with proper state management using useState
+- **FIXED**: Waveform heights properly controlled based on playback state
+
+#### Fixed Volume & Speed Controls
+- **FIXED**: Volume slider track visibility with proper CSS styling
+- **FIXED**: Speed control added next to volume with green gradient progress
+- **ENHANCED**: Both controls now send proper messages to background script
+- **IMPROVED**: Real-time updates and error handling for both controls
+- **UPGRADED**: Slider styling with better visual feedback and larger touch targets
+
+---
+
+## [2.1.0] - 2025-08-15
+
+### 🔧 Technical Fixes & UI Polish
+
+#### Settings Panel Improvements
+- **FIXED**: Settings panel scrolling - content no longer cut off at bottom
+- **ENHANCED**: Proper flex layout with fixed header and scrollable content
+- **IMPROVED**: Settings panel height constraints and overflow handling
+- **OPTIMIZED**: Better responsive design for different content heights
+
+#### Progress Display Enhancement
+- **RESTORED**: Real-time progress information above waveform
+- **ENHANCED**: "Progress" label with percentage and word count (e.g., "11% • 2.4k/4.2k words")
+- **IMPROVED**: Dynamic word progress calculation showing words read vs total
+- **FIXED**: Progress updates in real-time during reading
+
+#### Technical Improvements
+- **FIXED**: TypeScript compilation errors and browser compatibility issues
+- **IMPROVED**: NodeJS.Timeout replaced with number for browser environment
+- **ENHANCED**: Proper function closures and syntax error resolution
+- **OPTIMIZED**: Code structure and error handling
+
+---
+
 ## [2.0.0] - 2025-08-15
 
 ### 🎉 **MAJOR RELEASE - Complete UI/UX Redesign**
