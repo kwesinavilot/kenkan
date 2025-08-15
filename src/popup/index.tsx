@@ -7,6 +7,7 @@ import {
   incrementDocumentCount,
   type ReadingStats 
 } from '../utils/statsStorage';
+import { useLLMTTS } from './hooks/useOpenAITTS';
 
 // Component imports
 import { Header } from './components/Header';
@@ -348,16 +349,6 @@ function Popup() {
       setPlaybackState(prev => ({ ...prev, ...newState }));
       savePlaybackState(newState);
     }
-  };
-
-  const currentVoice = voices.find(v => v.name === playbackState.voice) || voices[0];
-  const progress = playbackState.totalSegments > 0
-    ? (playbackState.currentSegment / playbackState.totalSegments) * 100
-    : 65; // Demo progress
-
-  const truncateTitle = (title: string, maxLength: number = 40) => {
-    if (title.length <= maxLength) return title;
-    return title.substring(0, maxLength).trim() + '...';
   };
 
   const currentVoice = voices.find(v => v.name === playbackState.voice) || voices[0];

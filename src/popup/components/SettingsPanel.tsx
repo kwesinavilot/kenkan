@@ -1,7 +1,7 @@
 import { ChevronDown, Volume2 } from 'lucide-react';
 import { Switch } from './Switch';
-import { OpenAITTSSettings } from './OpenAITTSSettings';
-import { formatReadingTime, getCurrentSessionDuration } from '../../utils/statsStorage';
+import { LLMTTSSettings } from './OpenAITTSSettings';
+import { formatReadingTime, getCurrentSessionDuration, type ReadingStats } from '../../utils/statsStorage';
 
 interface PlaybackState {
   speed: number;
@@ -16,17 +16,14 @@ interface AppSettings {
   floatingButtonBehavior: 'always' | 'never';
 }
 
-interface ReadingStats {
-  todayReadingTime: number;
-  totalDocumentsRead: number;
-  currentSessionStart?: string;
-}
 
-interface OpenAITTSState {
+
+interface LLMTTSState {
+  provider: 'gemini' | 'openai' | 'elevenlabs';
   enabled: boolean;
   apiKey: string;
   voice: string;
-  model: 'tts-1' | 'tts-1-hd';
+  model: string;
 }
 
 interface SettingsPanelProps {
@@ -35,11 +32,11 @@ interface SettingsPanelProps {
   playbackState: PlaybackState;
   appSettings: AppSettings;
   readingStats: ReadingStats;
-  openaiTTS: OpenAITTSState;
+  llmTTS: LLMTTSState;
   onSpeedChange: (speed: number) => void;
   onVolumeChange: (volume: number) => void;
   onSettingsChange: (settings: Partial<AppSettings>) => void;
-  onOpenAITTSChange: (settings: Partial<OpenAITTSState>) => void;
+  onLLMTTSChange: (settings: Partial<LLMTTSState>) => void;
 }
 
 export function SettingsPanel({
@@ -48,11 +45,11 @@ export function SettingsPanel({
   playbackState,
   appSettings,
   readingStats,
-  openaiTTS,
+  llmTTS,
   onSpeedChange,
   onVolumeChange,
   onSettingsChange,
-  onOpenAITTSChange
+  onLLMTTSChange
 }: SettingsPanelProps) {
   return (
     <div className={`absolute inset-0 bg-white transform transition-transform duration-300 ease-in-out z-50 flex flex-col ${
@@ -139,16 +136,17 @@ export function SettingsPanel({
           </div>
         </div>
 
-        {/* OpenAI TTS Settings */}
-        <OpenAITTSSettings
-          isEnabled={openaiTTS.enabled}
-          apiKey={openaiTTS.apiKey}
-          voice={openaiTTS.voice}
-          model={openaiTTS.model}
-          onToggle={(enabled) => onOpenAITTSChange({ enabled })}
-          onApiKeyChange={(apiKey) => onOpenAITTSChange({ apiKey })}
-          onVoiceChange={(voice) => onOpenAITTSChange({ voice })}
-          onModelChange={(model) => onOpenAITTSChange({ model })}
+        {/* LLM TTS Settings */}
+        <LLMTTSSettings
+          provider={llmTTS.provider}
+          isEnabled={llmTTS.enabled}
+          apiKey={llmTTS.apiKey}
+          voice={llmTTS.voice}
+          model={llmTTS.model}
+          onToggle={(enabled) => onLLMTTSChange({ enabled })}
+          onApiKeyChange={(apiKey) => onLLMTTSChange({ apiKey })}
+          onVoiceChange={(voice) => onLLMTTSChange({ voice })}
+          onModelChange={(model) => onLLMTTSChange({ model })}
         />
 
         {/* Interface Settings */}

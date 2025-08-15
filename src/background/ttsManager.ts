@@ -1,6 +1,7 @@
 import { openai } from '@ai-sdk/openai';
 import { generateText } from 'ai';
 import { TTSErrorHandler } from './ttsErrorHandler';
+import { TTSProviderManager } from './ttsProviders/ttsProviderManager';
 import type {
   TTSOptions,
   PlaybackState,
@@ -16,12 +17,14 @@ import type { TextSegment } from '../types/content';
 export class TTSManager {
   private playbackState: PlaybackState;
   private currentUtterance: SpeechSynthesisUtterance | null = null;
+  private currentAudio: HTMLAudioElement | null = null;
   private textSegments: TextSegment[] = [];
   private availableVoices: TTSVoice[] = [];
   private options: TTSManagerOptions;
   private eventCallbacks: Map<string, TTSEventCallback[]> = new Map();
   private errorCallback: TTSErrorCallback | null = null;
   private retryCount = 0;
+  private llmTTSProviderManager: TTSProviderManager;
 
   constructor(options: TTSManagerOptions = {}) {
     this.options = {
@@ -29,6 +32,8 @@ export class TTSManager {
       defaultPitch: 1.0,
       defaultVolume: 1.0,
       enableAIEnhancement: false,
+      enableLLMTTS: false,
+      defaultProvider: 'gemini',
       retryAttempts: 3,
       retryDelay: 1000,
       ...options
@@ -46,7 +51,104 @@ export class TTSManager {
       pitch: this.options.defaultPitch || 1.0
     };
 
+    this.llmTTSProviderManager = new TTSProviderManager();
     this.initializeVoices();
+    this.initializeLLMTTS();
+  }
+
+  /**
+   * Initialize LLM TTS providers if enabled
+   */
+  private async initializeLLMTTS(): Promise<void> {
+    if (!this.options.enableLLMTTS) return;
+
+    try {
+      // Load provider configurations from storage
+      const configs = await this.getLLMTTSConfigs();
+      
+      // Initialize each enabled provider
+      for (const config of configs) {
+        if (config.enabled && config.apiKey) {
+          await this.llmTTSProviderManager.initializeProvider(config);
+        }
+      }
+
+      // Add LLM voices to available voices
+      this.addLLMVoicesToAvailable();
+    } catch (error) {
+      console.warn('Failed to initialize LLM TTS:', error);
+    }
+  }
+
+  /**
+   * Get LLM TTS configurations from storage
+   */
+  private async getLLMTTSConfigs(): Promise<import('../types/tts').LLMTTSProviderConfig[]> {
+    try {
+      if (typeof chrome !== 'undefined' && chrome.storage) {
+        return new Promise((resolve) => {
+          chrome.storage.sync.get([
+            'geminiTTSConfig',
+            'openaiTTSConfig', 
+            'elevenlabsTTSConfig'
+          ], (result) => {
+            const configs = [];
+            
+            if (result.geminiTTSConfig) configs.push(result.geminiTTSConfig);
+            if (result.openaiTTSConfig) configs.push(result.openaiTTSConfig);
+            if (result.elevenlabsTTSConfig) configs.push(result.elevenlabsTTSConfig);
+            
+            // Default Gemini config if none exist
+            if (configs.length === 0) {
+              configs.push({
+                provider: 'gemini' as const,
+                apiKey: '',
+                model: 'gemini-2.5-flash-preview-tts',
+                voice: 'Puck',
+                enabled: false
+              });
+            }
+            
+            resolve(configs);
+          });
+        });
+      }
+      return [];
+    } catch (error) {
+      console.error('Failed to get LLM TTS configs:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Add LLM voices to available voices list
+   */
+  private addLLMVoicesToAvailable(): void {
+    const availableProviders = this.llmTTSProviderManager.getAvailableProviders();
+    
+    availableProviders.forEach(providerType => {
+      this.llmTTSProviderManager.setActiveProvider(providerType);
+      const voices = this.llmTTSProviderManager.getAvailableVoices();
+      
+      const mappedVoices = voices.map(voice => ({
+        voiceURI: `${providerType}-${voice.id}`,
+        name: `${providerType.charAt(0).toUpperCase() + providerType.slice(1)} ${voice.name}`,
+        lang: voice.lang || 'en-US',
+        localService: false,
+        default: false,
+        provider: providerType as 'gemini' | 'openai' | 'elevenlabs'
+      }));
+
+      this.availableVoices.push(...mappedVoices);
+    });
+
+    // Set back to default provider
+    if (availableProviders.length > 0) {
+      const defaultProvider = this.options.defaultProvider || 'gemini';
+      if (availableProviders.includes(defaultProvider)) {
+        this.llmTTSProviderManager.setActiveProvider(defaultProvider);
+      }
+    }
   }
 
   /**
@@ -266,12 +368,88 @@ export class TTSManager {
       textToSpeak = await this.enhanceTextForTTS(textToSpeak);
     }
 
-    // Use Chrome TTS API if available
-    if (typeof chrome !== 'undefined' && chrome.tts) {
+    // Check if using LLM TTS
+    const isLLMVoice = this.playbackState.voice.includes('-') && 
+      ['gemini', 'openai', 'elevenlabs'].some(provider => 
+        this.playbackState.voice.startsWith(provider + '-')
+      );
+    
+    if (isLLMVoice && this.llmTTSProviderManager.getActiveProvider()) {
+      await this.speakWithLLMTTS(textToSpeak);
+    } else if (typeof chrome !== 'undefined' && chrome.tts) {
       await this.speakWithChromeTTS(textToSpeak);
     } else {
       // Fallback to Web Speech API
       await this.speakWithWebSpeech(textToSpeak);
+    }
+  }
+
+  /**
+   * Speak text using LLM TTS providers
+   */
+  private async speakWithLLMTTS(text: string): Promise<void> {
+    if (!text || text.trim().length === 0) {
+      return;
+    }
+
+    try {
+      // Parse provider and voice from voiceURI
+      const [providerType, voiceId] = this.playbackState.voice.split('-', 2);
+      
+      // Set the correct provider
+      this.llmTTSProviderManager.setActiveProvider(providerType as any);
+      
+      // Get current provider config for model
+      const configs = await this.getLLMTTSConfigs();
+      const currentConfig = configs.find(c => c.provider === providerType);
+      
+      const options = {
+        voice: voiceId,
+        model: currentConfig?.model,
+        speed: this.playbackState.speed
+      };
+
+      this.emitEvent({ type: 'start' });
+      this.playbackState.isPlaying = true;
+      this.playbackState.isPaused = false;
+
+      const audioUrl = await this.llmTTSProviderManager.generateSpeech(text, options);
+      
+      return new Promise((resolve, reject) => {
+        this.currentAudio = new Audio(audioUrl);
+        
+        this.currentAudio.volume = this.playbackState.volume;
+        
+        this.currentAudio.onended = () => {
+          this.playbackState.currentSegment++;
+          this.emitEvent({ type: 'end' });
+          this.retryCount = 0;
+          resolve();
+          
+          // Continue to next segment
+          setTimeout(() => this.playCurrentSegment(), 100);
+        };
+
+        this.currentAudio.onerror = (error) => {
+          console.error('LLM TTS audio playback error:', error);
+          this.emitEvent({ type: 'error', error: 'Audio playback failed' });
+          reject(new Error('Audio playback failed'));
+        };
+
+        this.currentAudio.ontimeupdate = () => {
+          if (this.currentAudio) {
+            const progress = this.currentAudio.currentTime / this.currentAudio.duration;
+            const charIndex = Math.floor(progress * text.length);
+            this.playbackState.currentPosition = charIndex;
+            this.emitEvent({ type: 'boundary', charIndex });
+          }
+        };
+
+        this.currentAudio.play().catch(reject);
+      });
+    } catch (error) {
+      console.error('LLM TTS error:', error);
+      throw error;
     }
   }
 
@@ -461,7 +639,9 @@ export class TTSManager {
    */
   pauseReading(): void {
     try {
-      if (typeof chrome !== 'undefined' && chrome.tts) {
+      if (this.currentAudio) {
+        this.currentAudio.pause();
+      } else if (typeof chrome !== 'undefined' && chrome.tts) {
         chrome.tts.pause();
       } else if (typeof speechSynthesis !== 'undefined') {
         speechSynthesis.pause();
@@ -485,7 +665,9 @@ export class TTSManager {
    */
   resumeReading(): void {
     try {
-      if (typeof chrome !== 'undefined' && chrome.tts) {
+      if (this.currentAudio) {
+        this.currentAudio.play();
+      } else if (typeof chrome !== 'undefined' && chrome.tts) {
         chrome.tts.resume();
       } else if (typeof speechSynthesis !== 'undefined') {
         speechSynthesis.resume();
@@ -509,7 +691,11 @@ export class TTSManager {
    */
   stopReading(): void {
     try {
-      if (typeof chrome !== 'undefined' && chrome.tts) {
+      if (this.currentAudio) {
+        this.currentAudio.pause();
+        this.currentAudio.currentTime = 0;
+        this.currentAudio = null;
+      } else if (typeof chrome !== 'undefined' && chrome.tts) {
         chrome.tts.stop();
       } else if (typeof speechSynthesis !== 'undefined') {
         speechSynthesis.cancel();
@@ -625,6 +811,49 @@ export class TTSManager {
    */
   getPlaybackState(): PlaybackState {
     return { ...this.playbackState };
+  }
+
+  /**
+   * Enable/disable OpenAI TTS
+   */
+  async setOpenAITTSEnabled(enabled: boolean, apiKey?: string): Promise<void> {
+    this.options.enableOpenAITTS = enabled;
+    
+    if (enabled && apiKey) {
+      // Store API key
+      if (typeof chrome !== 'undefined' && chrome.storage) {
+        await new Promise<void>((resolve) => {
+          chrome.storage.sync.set({ openaiApiKey: apiKey }, () => resolve());
+        });
+      }
+      
+      // Initialize service
+      this.openaiTTSService = new OpenAITTSService(apiKey);
+      this.addOpenAIVoicesToAvailable();
+    } else if (!enabled) {
+      // Clean up
+      if (this.openaiTTSService) {
+        this.openaiTTSService.clearCache();
+        this.openaiTTSService = null;
+      }
+      
+      // Remove OpenAI voices
+      this.availableVoices = this.availableVoices.filter(voice => !voice.isOpenAI);
+    }
+  }
+
+  /**
+   * Set OpenAI TTS model
+   */
+  setOpenAIModel(model: 'tts-1' | 'tts-1-hd'): void {
+    this.options.openAIModel = model;
+  }
+
+  /**
+   * Check if current voice is OpenAI
+   */
+  isUsingOpenAI(): boolean {
+    return this.playbackState.voice.startsWith('openai-');
   }
 
   /**

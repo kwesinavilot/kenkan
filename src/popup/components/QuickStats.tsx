@@ -1,11 +1,5 @@
 import { Clock, FileText } from 'lucide-react';
-import { formatReadingTime, getCurrentSessionDuration } from '../../utils/statsStorage';
-
-interface ReadingStats {
-  todayReadingTime: number;
-  totalDocumentsRead: number;
-  currentSessionStart?: string;
-}
+import { formatReadingTime, getCurrentSessionDuration, type ReadingStats } from '../../utils/statsStorage';
 
 interface QuickStatsProps {
   readingStats: ReadingStats;

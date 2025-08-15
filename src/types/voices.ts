@@ -30,10 +30,10 @@ export const KENKAN_VOICES: Record<string, VoiceProfile> = {
     },
     audioQuality: "Clean studio sound"
   },
-  
+
   Kwesi: {
     name: "Kwesi",
-    language: "English", 
+    language: "English",
     description: "A deep, confident male voice of a seasoned African news anchor in his early 40s. Smooth, commanding tone with a refined, articulate delivery that radiates authority and trust. Speaks at a measured, deliberate pace with clear enunciation and no slang. Ideal for formal news reads and serious commentary.",
     characteristics: {
       gender: 'male',
@@ -45,14 +45,14 @@ export const KENKAN_VOICES: Record<string, VoiceProfile> = {
     },
     audioQuality: "Broadcast-quality audio"
   },
-  
+
   Kwame: {
     name: "Kwame",
     language: "English",
     description: "A rich, expressive African voice of a seasoned storyteller in their mid-40s. Warm and engaging tone with steady pacing, dynamic modulation, and dramatic pauses for emphasis. Sounds like a trusted radio documentarian or podcast narrator with a smooth West African cadence. Perfect for longform summaries or deep dives.",
     characteristics: {
       gender: 'male',
-      age: 'mid-40s', 
+      age: 'mid-40s',
       tone: 'rich, expressive, warm, engaging',
       pace: 'steady with dynamic modulation',
       accent: 'West African cadence',
@@ -60,7 +60,7 @@ export const KENKAN_VOICES: Record<string, VoiceProfile> = {
     },
     audioQuality: "High-quality audio"
   },
-  
+
   Akua: {
     name: "Akua",
     language: "French",
