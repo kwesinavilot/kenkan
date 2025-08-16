@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Key, Volume2, Zap, Brain } from 'lucide-react';
 
 interface LLMTTSSettingsProps {

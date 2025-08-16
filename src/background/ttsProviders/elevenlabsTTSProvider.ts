@@ -1,4 +1,5 @@
-import { BaseTTSProvider, TTSProviderVoice, TTSProviderOptions, TTSProviderConfig } from './baseTTSProvider';
+import { BaseTTSProvider } from './baseTTSProvider';
+import type { TTSProviderVoice, TTSProviderOptions, TTSProviderConfig } from './baseTTSProvider';
 
 export class ElevenLabsTTSProvider extends BaseTTSProvider {
   constructor(config: TTSProviderConfig) {

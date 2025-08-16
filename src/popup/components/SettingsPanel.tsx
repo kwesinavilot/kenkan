@@ -1,6 +1,6 @@
 import { ChevronDown, Volume2 } from 'lucide-react';
 import { Switch } from './Switch';
-import { LLMTTSSettings } from './OpenAITTSSettings';
+// import { LLMTTSSettings } from './LLMTTSSettings';
 import { formatReadingTime, getCurrentSessionDuration, type ReadingStats } from '../../utils/statsStorage';
 
 interface PlaybackState {
@@ -18,25 +18,15 @@ interface AppSettings {
 
 
 
-interface LLMTTSState {
-  provider: 'gemini' | 'openai' | 'elevenlabs';
-  enabled: boolean;
-  apiKey: string;
-  voice: string;
-  model: string;
-}
-
 interface SettingsPanelProps {
   showSettings: boolean;
   setShowSettings: (show: boolean) => void;
   playbackState: PlaybackState;
   appSettings: AppSettings;
   readingStats: ReadingStats;
-  llmTTS: LLMTTSState;
   onSpeedChange: (speed: number) => void;
   onVolumeChange: (volume: number) => void;
   onSettingsChange: (settings: Partial<AppSettings>) => void;
-  onLLMTTSChange: (settings: Partial<LLMTTSState>) => void;
 }
 
 export function SettingsPanel({
@@ -45,11 +35,9 @@ export function SettingsPanel({
   playbackState,
   appSettings,
   readingStats,
-  llmTTS,
   onSpeedChange,
   onVolumeChange,
-  onSettingsChange,
-  onLLMTTSChange
+  onSettingsChange
 }: SettingsPanelProps) {
   return (
     <div className={`absolute inset-0 bg-white transform transition-transform duration-300 ease-in-out z-50 flex flex-col ${
@@ -136,7 +124,8 @@ export function SettingsPanel({
           </div>
         </div>
 
-        {/* LLM TTS Settings */}
+        {/* LLM TTS Settings - Commented out for now */}
+        {/* 
         <LLMTTSSettings
           provider={llmTTS.provider}
           isEnabled={llmTTS.enabled}
@@ -148,6 +137,7 @@ export function SettingsPanel({
           onVoiceChange={(voice) => onLLMTTSChange({ voice })}
           onModelChange={(model) => onLLMTTSChange({ model })}
         />
+        */}
 
         {/* Interface Settings */}
         <div className="space-y-4">
@@ -238,7 +228,7 @@ export function SettingsPanel({
         {/* Footer */}
         <div className="pt-4 border-t border-gray-200">
           <div className="text-center text-sm text-gray-500">
-            <p>Kenkan v2.6.1</p>
+            <p>Kenkan v2.7.0</p>
             <p className="mt-1">Made with ❤️ for better reading</p>
           </div>
         </div>

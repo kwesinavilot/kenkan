@@ -1,10 +1,11 @@
-import { BaseTTSProvider, TTSProviderVoice, TTSProviderOptions, TTSProviderConfig } from './baseTTSProvider';
+import { BaseTTSProvider } from './baseTTSProvider';
+import type { TTSProviderVoice, TTSProviderOptions, TTSProviderConfig } from './baseTTSProvider';
 
 export class GeminiTTSProvider extends BaseTTSProvider {
     constructor(config: TTSProviderConfig) {
         super({
             ...config,
-            baseUrl: config.baseUrl || 'https://generativelanguage.googleapis.com/v1beta'
+            baseUrl: config.baseUrl || 'https://generativelanguage.googleapis.com/v1beta/":
         });
     }
 

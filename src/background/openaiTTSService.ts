@@ -1,4 +1,5 @@
-import { BaseTTSProvider, TTSProviderVoice, TTSProviderOptions, TTSProviderConfig } from './ttsProviders/baseTTSProvider';
+import { BaseTTSProvider } from './ttsProviders/baseTTSProvider';
+import type { TTSProviderVoice, TTSProviderOptions, TTSProviderConfig } from './ttsProviders/baseTTSProvider';
 
 export class OpenAITTSProvider extends BaseTTSProvider {
   constructor(config: TTSProviderConfig) {

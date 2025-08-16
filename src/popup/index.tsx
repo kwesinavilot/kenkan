@@ -1,13 +1,13 @@
 import { useState, useEffect } from 'react';
 import ReactDOM from 'react-dom/client';
-import { 
-  loadReadingStats, 
-  startReadingSession, 
-  endReadingSession, 
+import {
+  loadReadingStats,
+  startReadingSession,
+  endReadingSession,
   incrementDocumentCount,
-  type ReadingStats 
+  type ReadingStats
 } from '../utils/statsStorage';
-import { useLLMTTS } from './hooks/useOpenAITTS';
+// LLM TTS is now handled automatically behind the scenes
 
 // Component imports
 import { Header } from './components/Header';
@@ -39,7 +39,7 @@ function Popup() {
     pitch: 1.0
   });
 
-
+  // LLM TTS is now automatic based on voice selection
   const [showSettings, setShowSettings] = useState(false);
   const [showVoiceSelector, setShowVoiceSelector] = useState(false);
   // const [isConnected, setIsConnected] = useState(true);
@@ -85,7 +85,7 @@ function Popup() {
     getCurrentPageWordCount();
     enforceTabLimit();
     loadReadingStatsData();
-    
+
     const interval = setInterval(() => {
       loadInitialData();
       getCurrentPageWordCount();
@@ -98,13 +98,13 @@ function Popup() {
   // Real-time update for reading time when actively reading
   useEffect(() => {
     let realtimeInterval: number;
-    
+
     if (playbackState.isPlaying && readingStats.currentSessionStart) {
       realtimeInterval = setInterval(() => {
         setReadingStats(prev => ({ ...prev })); // Trigger re-render to update display
       }, 1000); // Update every second
     }
-    
+
     return () => {
       if (realtimeInterval) clearInterval(realtimeInterval);
     };
@@ -364,12 +364,12 @@ function Popup() {
   return (
     <div className="w-[400px] bg-white shadow-2xl overflow-hidden font-sans relative">
       <Header onSettingsClick={() => setShowSettings(!showSettings)} />
-      
-      <ContentDetectionBar 
-        contentInfo={contentInfo} 
-        truncateTitle={truncateTitle} 
+
+      <ContentDetectionBar
+        contentInfo={contentInfo}
+        truncateTitle={truncateTitle}
       />
-      
+
       <VoiceSelector
         voices={voices}
         currentVoice={currentVoice}
@@ -377,21 +377,21 @@ function Popup() {
         onToggleSelector={() => setShowVoiceSelector(!showVoiceSelector)}
         onVoiceChange={handleVoiceChange}
       />
-      
+
       <ProgressSection
         playbackState={playbackState}
         contentInfo={contentInfo}
         appSettings={appSettings}
         progress={progress}
       />
-      
+
       <MainControls
         playbackState={playbackState}
         onPlay={handlePlay}
         onPause={handlePause}
         onStop={handleStop}
       />
-      
+
       <SecondaryControls
         playbackState={playbackState}
         appSettings={appSettings}
@@ -411,7 +411,7 @@ function Popup() {
       />
 
       <QuickStats readingStats={readingStats} />
-      
+
       <Footer />
     </div>
   );

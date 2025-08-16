@@ -26,7 +26,14 @@ export class MessageHandler {
 
   private initializeListeners(): void {
     chrome.runtime.onMessage.addListener((message: Message, sender, sendResponse) => {
-      this.handleMessage(message, sender, sendResponse);
+      // Handle the message asynchronously
+      this.handleMessage(message, sender, sendResponse).catch(error => {
+        console.error('Error in message handler:', error);
+        sendResponse({ 
+          success: false, 
+          error: error instanceof Error ? error.message : 'Unknown error' 
+        });
+      });
       return true; // Keep message channel open for async responses
     });
   }
@@ -37,7 +44,17 @@ export class MessageHandler {
     sendResponse: (response: MessageResponse) => void
   ): Promise<void> {
     try {
-      const tabId = sender.tab?.id || message.tabId;
+      let tabId = sender.tab?.id || message.tabId;
+      
+      // If no tab ID, try to get the active tab
+      if (!tabId && (message.action === 'startReading' || message.action === 'updateContent')) {
+        try {
+          const [activeTab] = await chrome.tabs.query({ active: true, currentWindow: true });
+          tabId = activeTab?.id;
+        } catch (error) {
+          console.warn('Could not get active tab:', error);
+        }
+      }
       
       console.log('Background received message:', message.action, 'from tab:', tabId);
 
@@ -69,9 +86,23 @@ export class MessageHandler {
           sendResponse({ success: true });
           break;
 
+        case 'refreshContent':
+          if (!tabId) {
+            sendResponse({ success: false, error: 'No tab ID provided' });
+            return;
+          }
+          // Ask content script to refresh content
+          try {
+            await chrome.tabs.sendMessage(tabId, { action: 'refreshContent' });
+            sendResponse({ success: true });
+          } catch (error) {
+            sendResponse({ success: false, error: 'Failed to refresh content' });
+          }
+          break;
+
         case 'startReading':
           await this.handleStartReading(message, tabId, sendResponse);
-          break;
+          return; // Don't continue to avoid double response
 
         case 'pauseReading':
           this.ttsManager.pauseReading();
@@ -228,6 +259,22 @@ export class MessageHandler {
             data: 'Background script is working!' 
           });
           break;
+
+        case 'LLM_TTS_SETTINGS_CHANGED':
+          if (message.data) {
+            try {
+              await this.ttsManager.updateLLMTTSProvider(message.data);
+              sendResponse({ success: true });
+            } catch (error) {
+              sendResponse({ 
+                success: false, 
+                error: error instanceof Error ? error.message : 'Failed to update LLM TTS provider' 
+              });
+            }
+          } else {
+            sendResponse({ success: false, error: 'No settings data provided' });
+          }
+          return; // Don't continue to avoid double response
 
         default:
           console.warn('Unknown message action:', message.action);

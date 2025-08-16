@@ -5,6 +5,111 @@ All notable changes to Kenkan will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.7.0] - 2025-08-16
+
+### 🎉 **MAJOR RELEASE - AI-Powered Voice Enhancement**
+
+#### Revolutionary LLM TTS Integration
+- **NEW**: Multi-provider LLM TTS architecture supporting Gemini, OpenAI, and ElevenLabs
+- **NEW**: Seamless voice enhancement - existing voice profiles now powered by premium AI TTS
+- **NEW**: Behind-the-scenes LLM mapping preserves familiar voice branding while delivering superior quality
+- **NEW**: Automatic fallback system - LLM TTS → System TTS for uninterrupted experience
+
+#### Enhanced Voice Profiles with AI Power
+- **ENHANCED**: **Kwame** (Expressive Storyteller) → Now powered by Gemini Puck for natural storytelling
+- **ENHANCED**: **Sandra** (Warm & Friendly) → Now powered by Gemini Kore for warm conversations  
+- **ENHANCED**: **Kwesi** (Authoritative News) → Now powered by OpenAI Onyx HD for professional delivery
+- **ENHANCED**: **Akua** (French Eloquent) → Now powered by ElevenLabs Bella for multilingual excellence
+
+#### Pluggable TTS Provider System
+- **NEW**: `BaseTTSProvider` abstract class for extensible provider architecture
+- **NEW**: `TTSProviderManager` for intelligent provider switching and management
+- **NEW**: `GeminiTTSProvider` with Gemini 2.5 Flash/Pro Preview TTS models
+- **NEW**: `OpenAITTSProvider` with TTS-1 and TTS-1-HD quality options
+- **NEW**: `ElevenLabsTTSProvider` with professional voice actor quality
+- **NEW**: Voice mapping system (`voiceMapping.ts`) for branded voice → LLM voice translation
+
+#### Smart Audio Management
+- **NEW**: Intelligent audio caching system to minimize API costs and improve performance
+- **NEW**: Provider-specific audio generation with optimal settings per voice type
+- **NEW**: Real-time audio playback with progress tracking and boundary events
+- **NEW**: Automatic cleanup and memory management for cached audio files
+
+### 🔧 Technical Architecture Improvements
+
+#### Multi-Provider Infrastructure
+- **NEW**: Generic provider interface supporting unlimited TTS services
+- **NEW**: Provider-specific configuration management with model and voice selection
+- **NEW**: Hardcoded API key system for seamless deployment (no user configuration needed)
+- **NEW**: Automatic provider initialization and health monitoring
+
+#### Enhanced TTS Manager
+- **REFACTORED**: Complete TTS manager overhaul with provider-agnostic architecture
+- **NEW**: Voice mapping detection - automatically routes branded voices to appropriate LLM providers
+- **NEW**: Intelligent provider switching based on voice selection
+- **NEW**: Enhanced error handling with provider-specific fallback strategies
+- **NEW**: Background message handling for provider configuration updates
+
+#### Type Safety & Code Quality
+- **IMPROVED**: Comprehensive TypeScript interfaces for all provider types
+- **IMPROVED**: Type-only imports for better compilation performance
+- **IMPROVED**: Proper error handling and async/await patterns throughout
+- **FIXED**: All TypeScript compilation errors and import issues
+
+### 🎨 User Experience Enhancements
+
+#### Preserved Voice Branding
+- **MAINTAINED**: All existing voice names, descriptions, and personality profiles
+- **MAINTAINED**: Familiar user interface with no learning curve
+- **MAINTAINED**: Same voice selection process - users see Kwame, Sandra, Kwesi, Akua
+- **ENHANCED**: Dramatically improved voice quality without changing user experience
+
+#### Seamless Integration
+- **HIDDEN**: LLM TTS settings panel (commented out) - no user configuration required
+- **AUTOMATIC**: Voice enhancement happens transparently behind the scenes
+- **FALLBACK**: Graceful degradation to system TTS if LLM providers unavailable
+- **CONSISTENT**: Same playback controls and features work with enhanced voices
+
+#### Performance Optimizations
+- **OPTIMIZED**: Audio caching reduces repeated API calls for same content
+- **OPTIMIZED**: Provider-specific speed mapping for optimal playback experience
+- **OPTIMIZED**: Memory management with automatic cache cleanup
+- **OPTIMIZED**: Network efficiency with intelligent request batching
+
+### 📋 Configuration & Deployment
+
+#### Hardcoded API Integration
+- **NEW**: `voiceMapping.ts` configuration file for easy API key management
+- **NEW**: Provider-specific voice and model mappings
+- **NEW**: Centralized API key storage for deployment
+- **SIMPLIFIED**: No user configuration required - works out of the box
+
+#### Provider Capabilities
+- **GEMINI**: 4 voices (Puck, Charon, Kore, Fenrir) with 2 quality models
+- **OPENAI**: 6 voices (Alloy, Echo, Fable, Onyx, Nova, Shimmer) with standard/HD quality
+- **ELEVENLABS**: 6+ professional voices with multiple model options
+- **SYSTEM**: Fallback to Chrome TTS and Web Speech API
+
+### 🔄 Breaking Changes
+- **INTERNAL**: Complete TTS provider architecture redesign (user-facing interface unchanged)
+- **ENHANCED**: Voice quality dramatically improved while maintaining same voice names
+- **REMOVED**: User-facing LLM configuration (now handled automatically)
+
+### 🐛 Bug Fixes
+- **FIXED**: TypeScript compilation errors with proper type-only imports
+- **FIXED**: React import warnings in components
+- **FIXED**: ReadingStats type conflicts between components
+- **FIXED**: Duplicate variable declarations in popup component
+- **FIXED**: Provider initialization and error handling edge cases
+
+### 📚 Documentation Updates
+- **ADDED**: Comprehensive LLM TTS integration documentation
+- **ADDED**: Provider architecture and voice mapping documentation
+- **UPDATED**: Installation and configuration instructions
+- **CREATED**: Voice enhancement feature descriptions
+
+---
+
 ## [2.6.1] - 2025-08-15
 
 ### 🏗️ Code Architecture & Maintainability Improvements

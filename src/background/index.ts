@@ -23,6 +23,8 @@ const storageManager = new StorageManager();
 const stateManager = new StateManager();
 const ttsManager = new TTSManager({
   enableAIEnhancement: false, // Disable by default for performance
+  enableLLMTTS: true, // Enable LLM TTS with voice mapping
+  defaultProvider: 'gemini',
   retryAttempts: 3,
   retryDelay: 1000
 });

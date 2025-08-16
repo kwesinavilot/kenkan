@@ -1,8 +1,9 @@
-import { BaseTTSProvider, TTSProviderOptions } from './baseTTSProvider';
+import { BaseTTSProvider } from './baseTTSProvider';
+import type { TTSProviderOptions } from './baseTTSProvider';
 import { GeminiTTSProvider } from './geminiTTSProvider';
 import { OpenAITTSProvider } from '../openaiTTSService';
 import { ElevenLabsTTSProvider } from './elevenlabsTTSProvider';
-import { LLMTTSProviderConfig } from '../../types/tts';
+import type { LLMTTSProviderConfig } from '../../types/tts';
 
 export type TTSProviderType = 'gemini' | 'openai' | 'elevenlabs';
 

@@ -1,4 +1,4 @@
-import React from 'react';
+// Switch component
 
 interface SwitchProps {
   checked: boolean;
