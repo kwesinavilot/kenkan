@@ -9,7 +9,7 @@ export interface VoiceMapping {
 
 // Hardcoded API keys (replace with your actual keys)
 export const API_KEYS = {
-  gemini: 'AIzaSyBANEciLK9kOAuFy_shhAsVgWn5PMKt1oo',
+  gemini: 'YOUR_GEMINI_API_KEY_HERE',
   openai: 'YOUR_OPENAI_API_KEY_HERE', 
   elevenlabs: 'YOUR_ELEVENLABS_API_KEY_HERE'
 };
